@@ -2,7 +2,7 @@ FROM python:3.10
 
 WORKDIR /tmp
 
-COPY ./noxfile.py /tmp/noxfile.py
+COPY ./docker/noxfile.py /tmp/noxfile.py
 
 # 更新软件包列表，安装git
 RUN apt-get update \
