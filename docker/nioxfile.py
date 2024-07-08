@@ -137,8 +137,8 @@ else:
             "homepage": plugin.metadata.homepage,
             "supported_adapters": plugin.metadata.supported_adapters,
         }}
-        with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf8") as f:
-            f.write(f"METADATA<<EOF\\n{{json.dumps(metadata, cls=SetEncoder)}}\\nEOF\\n")
+        with open("metadata.json", "w", encoding="utf8") as f:
+            f.write(f"{{json.dumps(metadata, cls=SetEncoder)}}")
 
         if plugin.metadata.config and not issubclass(plugin.metadata.config, BaseModel):
             logger.error("插件配置项不是 Pydantic BaseModel 的子类")
@@ -200,7 +200,7 @@ class Logger:
     #     for i in msg.strip().splitlines():
     #         self._session.debug(i)
     #         self._log_output(i)
-    #
+    #   (?)
 
     def _log_output(self, msg: str):
         self._lines_output.append(msg)
@@ -286,21 +286,26 @@ class PluginTest:
     
 
         # 输出测试结果 JSON
-        # { "outputs": list[str],
+        # { "metadata": dict,
+        #   "outputs": list[str],
         #   "status": bool,
-        #   "is_run": 
+        #   "is_run": bool,
         # }
-        # 
+
+        metadata = {}
+        with open(self.path / "metadata.json", "r", encoding="utf8") as f:
+            metadata = json.load(f)
+        
         # 输出测试结果
-        with open(self.path / f"result-{self._test_name}.json", "w", encoding="utf8") as f:
+        with open(self.test_dir / f"result_{self._test_name}.json", "w", encoding="utf8") as f:
             f.write(
                 json.dumps(
-                    {
+                    {   
+                        "metadata": metadata,
                         "outputs": self._logger._lines_output,
                         "status": self._run,
                         "is_run": self._create,
-                    },
-                    indent=4,
+                    }
                 )
             )
             
@@ -450,8 +455,9 @@ class PluginTest:
             if package_name in self.plugin_list and package_name != self.project_link:
                 return self.plugin_list[package_name]
 
+python_versions = ["3.9", "3.10", "3.11", "3.12"]
 
-@session(python=["3.9", "3.10", "3.11", "3.12"])
+@session(python=python_versions)
 def plugin_test(session: Session):
     plugin = PluginTest(
         os.environ.get("PLUGIN_INFO",""),
@@ -462,3 +468,24 @@ def plugin_test(session: Session):
     asyncio.run(
         plugin.run()
     )
+
+@session
+def merge_results(session: Session):
+    results = {}
+    path = Path("plugin_test")
+    for python in python_versions:
+        result_path = path / f"result_plugin_test-{python}.json"
+        if result_path.exists():
+            with open(result_path, "r", encoding="utf8") as f:
+                results[f"python{python}"] = json.load(f)
+        else: 
+            results[f"python{python}"] = {
+                "metadata": {},
+                "outputs": [],
+                "status": False,
+                "is_run": False,
+            }
+            
+    with open("results.json", "w", encoding="utf8") as f:
+        f.write(json.dumps(results))
+
