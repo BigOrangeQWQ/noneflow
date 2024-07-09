@@ -15,12 +15,9 @@ import asyncio
 import json
 import re
 import os
-import shutil
 from asyncio import create_subprocess_shell, subprocess
 from pathlib import Path
 from urllib.request import urlopen
-
-from nox import Session, session
 
 # NoneBot Store
 STORE_PLUGINS_URL = (
@@ -166,48 +163,8 @@ def get_plugin_list() -> dict[str, str]:
 
     return {plugin["project_link"]: plugin["module_name"] for plugin in plugins}
 
-
-class Logger:
-    def __init__(self, session: Session):
-        self._lines_output = []
-        self._session = session
-
-    def error(self, msg: str):
-        """
-        Nox 输出错误信息，并且抛出测试异常
-        """
-        self._log_output(msg)
-        self._session.error(msg)
-
-    def info(self, msg: str):
-        """
-        Nox 输出信息
-        """
-        self._log_output(msg)
-        self._session.debug(msg)
-
-    def infos(self, msg: str):
-        """
-        Nox 输出信息
-        """
-        for i in msg.strip().splitlines():
-            self.info(i)
-
-    # def info(self, msg: str):
-    #     """
-    #     Nox 输出信息
-    #     """
-    #     for i in msg.strip().splitlines():
-    #         self._session.debug(i)
-    #         self._log_output(i)
-    #   (?)
-
-    def _log_output(self, msg: str):
-        self._lines_output.append(msg)
-
-
 class PluginTest:
-    def __init__(self, project_info: str, session: Session, config: str | None = None) -> None:
+    def __init__(self, project_info: str, config: str | None = None) -> None:
         """插件测试构造函数
 
         Args:
@@ -222,13 +179,8 @@ class PluginTest:
         self._create = False
         self._run = False
         self._deps = []
-
-        # Nox Session
-        self._logger = Logger(session)  
-        self._session= session
-        self._test_name = session.name
-        self.error = self._logger.error
-        self.info = self._logger.info
+        
+        self._lines_output = []
 
         # 插件测试目录
         self.test_dir = Path("plugin_test")
@@ -237,6 +189,7 @@ class PluginTest:
         # 通过环境变量获取 GITHUB 输出文件位置
         # self.github_output_file = Path(os.environ.get("GITHUB_OUTPUT", ""))
         # self.github_step_summary_file = Path(os.environ.get("GITHUB_STEP_SUMMARY", ""))
+
 
     @property
     def key(self) -> str:
@@ -252,7 +205,7 @@ class PluginTest:
         """插件测试目录"""
         # 替换 : 为 -，防止文件名不合法
         key = self.key.replace(":", "-")
-        return self.test_dir / f"{key}-{self._test_name}"
+        return self.test_dir / f"{key}"
 
     @property
     def env(self) -> dict[str, str]:
@@ -269,13 +222,19 @@ class PluginTest:
         env["POETRY_VIRTUALENVS_PREFER_ACTIVE_PYTHON"] = "true"
         return env
 
+    def _log_output(self, msg: str):
+        print(msg)
+        self._lines_output.append(msg)
+        
+
+
     async def run(self):
         """插件测试入口"""
 
         # 创建测试目录
         if not self.test_dir.exists():
             self.test_dir.mkdir()
-            self._logger.info(f"创建测试目录 {self.test_dir}")
+            self._log_output(f"创建测试目录 {self.test_dir}")
 
         # 创建插件测试项目
         await self.create_poetry_project()
@@ -285,31 +244,24 @@ class PluginTest:
             await self.run_poetry_project()
     
 
-        # 输出测试结果 JSON
-        # { "metadata": dict,
-        #   "outputs": list[str],
-        #   "status": bool,
-        #   "is_run": bool,
-        # }
-
         metadata = {}
         with open(self.path / "metadata.json", "r", encoding="utf8") as f:
             metadata = json.load(f)
         
         # 输出测试结果
-        with open(self.test_dir / f"result_{self._test_name}.json", "w", encoding="utf8") as f:
+        with open("result.json", "w", encoding="utf8") as f:
             f.write(
                 json.dumps(
                     {   
                         "metadata": metadata,
-                        "outputs": self._logger._lines_output,
+                        "outputs": self._lines_output,
                         "status": self._run,
                         "is_run": self._create,
                     }
                 )
             )
             
-        return self._run, self._logger._lines_output
+        return self._run, self._lines_output
 
     async def command(
         self, cmd: str, timeout: int | None = None
@@ -352,16 +304,15 @@ class PluginTest:
             self._create = code
 
             if self._create:
-                self.info(f"项目 {self.project_link} 创建成功。")
+                self._log_output(f"项目 {self.project_link} 创建成功。")
                 for i in stdout.strip().splitlines():
-                    self.info(f"    {i}")
+                    self._log_output(f"    {i}")
             else:
-                self.info(f"项目 {self.project_link} 创建失败：")
+                self._log_output(f"项目 {self.project_link} 创建失败：")
                 for i in stderr.strip().splitlines():
-                    self.info(f"    {i}")
-                self.error("")
+                    self._log_output(f"    {i}")
         else:
-            self.info(f"项目 {self.project_link} 已存在，跳过创建。")
+            self._log_output(f"项目 {self.project_link} 已存在，跳过创建。")
             self._create = True
 
     async def show_package_info(self) -> None:
@@ -370,11 +321,11 @@ class PluginTest:
                 f"poetry show {self.project_link}"
             )
             if code:
-                self.info(f"插件 {self.project_link} 的信息如下：")
+                self._log_output(f"插件 {self.project_link} 的信息如下：")
                 for i in stdout.strip().splitlines():
-                    self.info(f"    {i}")
+                    self._log_output(f"    {i}")
             else:
-                self.error(f"插件 {self.project_link} 信息获取失败。")
+                self._log_output(f"插件 {self.project_link} 信息获取失败。")
 
     async def run_poetry_project(self) -> None:
         if self.path.exists():
@@ -404,34 +355,31 @@ class PluginTest:
             self._run = code
 
             if self._run:
-                self.info(f"插件 {self.module_name} 加载正常：")
+                self._log_output(f"插件 {self.module_name} 加载正常：")
             else:
-                self.info(f"插件 {self.module_name} 加载出错：")
+                self._log_output(f"插件 {self.module_name} 加载出错：")
 
             _out = stdout.strip().splitlines()
             _err = stderr.strip().splitlines()
             for i in _out:
-                self.info(f"    {i}")
+                self._log_output(f"    {i}")
 
             for i in _err:
-                self.info(f"    {i}")
-
-            if not self._run:
-                self.error("")
+                self._log_output(f"    {i}")
 
     async def show_plugin_dependencies(self) -> None:
         if self.path.exists():
             code, stdout, stderr = await self.command("poetry export --without-hashes")
 
             if code:
-                self.info(f"插件 {self.project_link} 依赖的插件如下：")
+                self._log_output(f"插件 {self.project_link} 依赖的插件如下：")
                 for i in stdout.strip().splitlines():
                     module_name = self._get_plugin_module_name(i)
                     if module_name:
                         self._deps.append(module_name)
-                self.info(f"    {', '.join(self._deps)}")
+                self._log_output(f"    {', '.join(self._deps)}")
             else:
-                self.error(f"插件 {self.project_link} 依赖获取失败。")
+                self._log_output(f"插件 {self.project_link} 依赖获取失败。")
 
     @property
     def plugin_list(self) -> dict[str, str]:
@@ -455,13 +403,10 @@ class PluginTest:
             if package_name in self.plugin_list and package_name != self.project_link:
                 return self.plugin_list[package_name]
 
-python_versions = ["3.9", "3.10", "3.11", "3.12"]
 
-@session(python=python_versions)
-def plugin_test(session: Session):
+def main():
     plugin = PluginTest(
         os.environ.get("PLUGIN_INFO",""),
-        session,
         os.environ.get("PLUGIN_CONFIG", None)
     )
 
@@ -469,23 +414,5 @@ def plugin_test(session: Session):
         plugin.run()
     )
 
-@session
-def merge_results(session: Session):
-    results = {}
-    path = Path("plugin_test")
-    for python in python_versions:
-        result_path = path / f"result_plugin_test-{python}.json"
-        if result_path.exists():
-            with open(result_path, "r", encoding="utf8") as f:
-                results[f"python{python}"] = json.load(f)
-        else: 
-            results[f"python{python}"] = {
-                "metadata": {},
-                "outputs": [],
-                "status": False,
-                "is_run": False,
-            }
-            
-    with open("results.json", "w", encoding="utf8") as f:
-        f.write(json.dumps(results))
-
+if __name__ == "__main__":
+    main()

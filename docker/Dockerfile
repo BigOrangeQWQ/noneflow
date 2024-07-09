@@ -1,34 +1,24 @@
-FROM python:3.10
+ARG PYTHON_VERSION=3.10
+
+FROM python:${PYTHON_VERSION} AS builder
+
+RUN apt-get update -y \
+    && apt-get install -y curl \
+    && rm -rf /var/lib/apt/lists/* 
+
+RUN curl -sSL https://install.python-poetry.org -o install-poetry.py 
+
+FROM python:${PYTHON_VERSION}-slim
 
 WORKDIR /tmp
 
-COPY ./docker/noxfile.py /tmp/noxfile.py
+COPY ./plugin_test.py /tmp/plugin_test.py
 
-# 更新软件包列表，安装git
-RUN apt-get update \
-    && apt-get install -y git \
-    && apt-get install -y curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder install-poetry.py /tmp/install-poetry.py
 
-RUN curl https://pyenv.run | bash
-
-ENV PYENV_ROOT="/root/.pyenv"
-ENV PATH="${PATH}:/root/.pyenv/bin"
-
-RUN eval "$(pyenv init -)" \
-    && pyenv install 3.9 \
-    && pyenv install 3.10 \
-    && pyenv install 3.11 \
-    && pyenv install 3.12 \
-    && pyenv global 3.10
-
-RUN pip install nox
-
-RUN curl -sSL https://install.python-poetry.org -o install-poetry.py
-
-RUN python install-poetry.py --yes
+RUN pip install --upgrade pip \
+    && python install-poetry.py --yes
 
 ENV PATH="${PATH}:/root/.local/bin"
 
-CMD ["nox"]
+CMD ["python", "plugin_test.py"]

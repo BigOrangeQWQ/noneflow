@@ -71,6 +71,10 @@ jobs:
   plugin-test-docker:
     name: Docker
     runs-on: ubuntu-latest
+    strategy:
+      martix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+
     needs: test
     if: ${{ github.event_name != 'pull_request' }}
     steps:
@@ -91,7 +95,7 @@ jobs:
         uses: docker/metadata-action@v5
         id: metadata
         with:
-          images: ghcr.io/bigorangeqwq/nonetest
+          images: ghcr.io/bigorangeqwq/nonetest:${{ matrix.python-version }}
           tags: |
             type=semver,pattern={{version}}
             type=ref,event=branch
@@ -104,6 +108,7 @@ jobs:
           push: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
+          build-args: PYTHON_VERSION=${{ matrix.python-version }}
 
   github-relase:
     name: GitHub release
