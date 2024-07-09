@@ -72,7 +72,7 @@ jobs:
     name: Docker
     runs-on: ubuntu-latest
     strategy:
-      martix:
+      matrix:
         python-version: ['3.9', '3.10', '3.11', '3.12']
 
     needs: test
