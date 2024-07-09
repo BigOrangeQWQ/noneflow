@@ -95,10 +95,10 @@ jobs:
         uses: docker/metadata-action@v5
         id: metadata
         with:
-          images: ghcr.io/bigorangeqwq/nonetest:${{ matrix.python-version }}
+          images: ghcr.io/bigorangeqwq/nonetest-${{ matrix.python-version }}
           tags: |
             type=semver,pattern={{version}}
-            type=ref,event=branch
+            type=raw,value=${{ matrix.python-version }}-{{branch}}
 
       - name: Build and Publish
         uses: docker/build-push-action@v5
