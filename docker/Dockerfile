@@ -16,8 +16,7 @@ COPY ./docker/docker_plugin_test.py /tmp/plugin_test.py
 
 COPY --from=builder install-poetry.py /tmp/install-poetry.py
 
-RUN pip install --upgrade pip \
-    && python install-poetry.py --yes
+RUN python install-poetry.py --yes
 
 ENV PATH="${PATH}:/root/.local/bin"
 

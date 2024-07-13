@@ -223,7 +223,7 @@ class PluginTest:
         return env
 
     def _log_output(self, msg: str):
-        print(msg)
+        # print(msg)
         self._lines_output.append(msg)
         
 
@@ -245,21 +245,22 @@ class PluginTest:
     
 
         metadata = {}
-        with open(self.path / "metadata.json", "r", encoding="utf8") as f:
-            metadata = json.load(f)
+        metadata_path = self.path / "metadata.json"
+        if metadata_path.exists():
+            with open(self.path / "metadata.json", "r", encoding="utf8") as f:
+                metadata = json.load(f)
         
         # 输出测试结果
-        with open("result.json", "w", encoding="utf8") as f:
-            f.write(
-                json.dumps(
-                    {   
-                        "metadata": metadata,
-                        "outputs": self._lines_output,
-                        "status": self._run,
-                        "is_run": self._create,
-                    }
-                )
+        print(
+            json.dumps(
+                {   
+                    "metadata": metadata,
+                    "outputs": self._lines_output,
+                    "status": self._run,
+                    "is_run": self._create,
+                }
             )
+        )
             
         return self._run, self._lines_output
 
