@@ -1,7 +1,12 @@
-from typing import Any, Literal, TypedDict
+from typing import Any
+
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+from pydantic import BaseModel, Field, field_validator
 
 
-class StorePlugin(TypedDict):
+class StorePlugin(BaseModel):
     """NoneBot 仓库中的插件数据"""
 
     module_name: str
@@ -11,7 +16,7 @@ class StorePlugin(TypedDict):
     is_official: bool
 
 
-class Plugin(TypedDict):
+class Plugin(BaseModel):
     """NoneBot 商店插件数据"""
 
     module_name: str
@@ -27,24 +32,34 @@ class Plugin(TypedDict):
     valid: bool
     time: str
     version: str
-    skip_test: bool
+    skip_test: bool = Field(default=False)
 
 
-class Metadata(TypedDict):
+class Metadata(BaseModel):
     """插件元数据"""
 
     name: str
     description: str
     homepage: str
     type: str
-    supported_adapters: list[str]
+    supported_adapters: list[str] | None
 
 
-class TestResult(TypedDict):
-    """测试结果"""
+class DockerTestResult(BaseModel):
+    version: str
+    time: str = Field(
+        default_factory=lambda: datetime.now(ZoneInfo("Asia/Shanghai")).isoformat()
+    )
+    metadata: Metadata | None
+    output: list[str]
+    config: str
+    status: bool
+    is_run: bool
 
-    time: str
-    version: str | None
-    results: dict[Literal["validation", "load", "metadata"], bool]
-    inputs: dict[Literal["config"], str]
-    outputs: dict[Literal["validation", "load", "metadata"], Any]
+
+class TestResult(BaseModel):
+    version: list[str]
+    valid: bool
+    time: str = Field(
+        default_factory=lambda: datetime.now(ZoneInfo("Asia/Shanghai")).isoformat()
+    )

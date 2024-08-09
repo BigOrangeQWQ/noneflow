@@ -12,3 +12,6 @@ STORE_BOTS_URL = f"{STORE_BASE_URL}/bots.json"
 STORE_DRIVERS_URL = f"{STORE_BASE_URL}/drivers.json"
 STORE_PLUGINS_URL = f"{STORE_BASE_URL}/plugins.json"
 """plugin_test.py 中也有一个常量，需要同时修改"""
+
+DOCKER_IMAGES = "ghcr.io/bigorangeqwq/nonetest:{}-main"
+BASE_VERSION = "3.10"

@@ -10,7 +10,6 @@
 """
 # ruff: noqa: T201, ASYNC101
 
-
 import asyncio
 import json
 import re
@@ -163,6 +162,7 @@ def get_plugin_list() -> dict[str, str]:
 
     return {plugin["project_link"]: plugin["module_name"] for plugin in plugins}
 
+
 class PluginTest:
     def __init__(self, project_info: str, config: str | None = None) -> None:
         """插件测试构造函数
@@ -179,7 +179,7 @@ class PluginTest:
         self._create = False
         self._run = False
         self._deps = []
-        
+
         self._lines_output = []
 
         # 插件测试目录
@@ -189,7 +189,6 @@ class PluginTest:
         # 通过环境变量获取 GITHUB 输出文件位置
         # self.github_output_file = Path(os.environ.get("GITHUB_OUTPUT", ""))
         # self.github_step_summary_file = Path(os.environ.get("GITHUB_STEP_SUMMARY", ""))
-
 
     @property
     def key(self) -> str:
@@ -225,8 +224,6 @@ class PluginTest:
     def _log_output(self, msg: str):
         # print(msg)
         self._lines_output.append(msg)
-        
-
 
     async def run(self):
         """插件测试入口"""
@@ -242,18 +239,17 @@ class PluginTest:
             await self.show_package_info()
             await self.show_plugin_dependencies()
             await self.run_poetry_project()
-    
 
         metadata = {}
         metadata_path = self.path / "metadata.json"
         if metadata_path.exists():
             with open(self.path / "metadata.json", "r", encoding="utf8") as f:
                 metadata = json.load(f)
-        
+
         # 输出测试结果
         print(
             json.dumps(
-                {   
+                {
                     "metadata": metadata,
                     "outputs": self._lines_output,
                     "status": self._run,
@@ -261,7 +257,7 @@ class PluginTest:
                 }
             )
         )
-            
+
         return self._run, self._lines_output
 
     async def command(
@@ -407,13 +403,11 @@ class PluginTest:
 
 def main():
     plugin = PluginTest(
-        os.environ.get("PLUGIN_INFO",""),
-        os.environ.get("PLUGIN_CONFIG", None)
+        os.environ.get("PLUGIN_INFO", ""), os.environ.get("PLUGIN_CONFIG", None)
     )
 
-    asyncio.run(
-        plugin.run()
-    )
+    asyncio.run(plugin.run())
+
 
 if __name__ == "__main__":
     main()

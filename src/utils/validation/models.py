@@ -1,7 +1,7 @@
 import abc
 import json
 from enum import Enum
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any
 
 from pydantic import (
     BaseModel,
@@ -26,13 +26,36 @@ if TYPE_CHECKING:
     from pydantic_core import ErrorDetails
 
 
-class ValidationDict(TypedDict):
+class ValidationDict(BaseModel):
     valid: bool
     type: "PublishType"
     name: str
     author: str
     data: dict[str, Any]
-    errors: "list[ErrorDetails]"
+    errors: list["ErrorDetails"]
+
+
+class ProjectInfo(BaseModel):
+    """
+    待 validate 的发布信息
+    """
+
+    type: "PublishType"
+    name: str | None = Field(default="")
+    desc: str | None
+    author: str | None
+    homepage: str | None
+    tags: str | None
+
+    # Plugin/ Adapter
+    previous_data: list[dict[str, str]] | None = Field(default=None)
+
+    # Plugin
+    module_name: str | None = Field(default=None)
+    project_link: str | None = Field(default=None)
+    skip_plugin_test: bool = Field(default=False)
+    supported_adapters: str | None = Field(default=None)
+    plugin_type: str | None = Field(default=None)
 
 
 class PublishType(Enum):
@@ -206,6 +229,7 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
                 },
             )
         return sorted(supported_adapters)
+
 
 
 class AdapterPublishInfo(PublishInfo, PyPIMixin):
