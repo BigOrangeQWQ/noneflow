@@ -6,11 +6,12 @@ import re
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 from zoneinfo import ZoneInfo
 
 from src.utils.plugin_test import PluginTest, strip_ansi
 from src.utils.validation import PublishType, validate_info
+from utils.docker_test import DockerPluginTest
 
 from .models import Metadata, Plugin, StorePlugin, TestResult
 from .utils import get_latest_version, get_upload_time
@@ -25,10 +26,10 @@ def extract_metadata(path: Path) -> Metadata | None:
         return json.loads(match.group(1))
 
 
-def extract_version(path: Path, project_link: str) -> str | None:
+def extract_version(output: str, project_link: str) -> str | None:
     """提取插件版本"""
-    with open(path / "output.txt", encoding="utf8") as f:
-        output = f.read()
+    # with open(path / "output.txt", encoding="utf8") as f:
+    #     output = f.read()
     output = strip_ansi(output)
 
     # 匹配 poetry show 的输出
@@ -98,22 +99,28 @@ async def validate_plugin(
             "supported_adapters": new_plugin.get("supported_adapters"),
         }
     else:
-        test = PluginTest(project_link, module_name, config)
+        # test = PluginTest(project_link, module_name, config)
+        test = DockerPluginTest(project_link, module_name, config)
 
         # 将 GitHub Action 的输出文件重定向到测试文件夹内
-        test.github_output_file = (test.path / "output.txt").resolve()
-        test.github_step_summary_file = (test.path / "summary.txt").resolve()
+        # test.github_output_file = (test.path / "output.txt").resolve()
+        # test.github_step_summary_file = (test.path / "summary.txt").resolve()
         # 加载测试脚本需要从环境变量中获取 GitHub Action 的输出文件路径
-        os.environ["GITHUB_OUTPUT"] = str(test.github_output_file)
+        # os.environ["GITHUB_OUTPUT"] = str(test.github_output_file)
 
         # 获取测试结果
-        plugin_test_result, plugin_test_output = await test.run()
+        plugin_test_result = await test.run("3.10")
+        cast(DockerPluginTest, plugin_test_result)
+        plugin_test_output = plugin_test_result["output"]
+        metadata = plugin_test_result["metadata"]
 
-        metadata = extract_metadata(test.path)
-        test_version = extract_version(test.path, project_link)
+        plugin_test_result = plugin_test_result["status"]
+
+        # metadata = extract_metadata(test.path)
+        test_version = extract_version("".join(plugin_test_output), project_link)
 
         # 测试并提取完数据后删除测试文件夹
-        shutil.rmtree(test.path)
+        # shutil.rmtree(test.path)
 
         # 当跳过测试的插件首次通过加载测试，则不再标记为跳过测试
         should_skip = False if plugin_test_result else skip_test

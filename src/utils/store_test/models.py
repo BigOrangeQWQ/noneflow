@@ -1,3 +1,4 @@
+from sys import version
 from typing import Any, Literal, TypedDict
 
 
@@ -48,3 +49,14 @@ class TestResult(TypedDict):
     results: dict[Literal["validation", "load", "metadata"], bool]
     inputs: dict[Literal["config"], str]
     outputs: dict[Literal["validation", "load", "metadata"], Any]
+
+
+class DockerTestResult(TypedDict):
+    """Docker 测试结果"""
+
+    version: str
+    config: str
+    metadata: Metadata
+    outputs: list[str]
+    is_run: bool
+    status: bool
