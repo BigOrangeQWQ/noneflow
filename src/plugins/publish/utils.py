@@ -10,6 +10,8 @@ from nonebot import logger
 from nonebot.adapters.github import Bot, GitHubBot
 
 from src.utils.validation import PublishType, ValidationDict, validate_info
+from utils.constants import DOCKER_IMAGES
+from utils.docker_test import DockerPluginTest
 
 from .config import plugin_config
 from .constants import (
@@ -161,7 +163,7 @@ def extract_name_from_title(title: str, publish_type: PublishType) -> str | None
         return match.group(1)
 
 
-def validate_info_from_issue(
+async def validate_info_from_issue(
     issue: "Issue",
     publish_type: PublishType,
 ) -> ValidationDict:
@@ -211,22 +213,27 @@ def validate_info_from_issue(
             module_name = PLUGIN_MODULE_NAME_PATTERN.search(body)
             project_link = PROJECT_LINK_PATTERN.search(body)
             tags = TAGS_PATTERN.search(body)
-            module_name = module_name.group(1).strip() if module_name else None
-            project_link = project_link.group(1).strip() if project_link else None
+            module_name  = module_name.group(1).strip() if module_name else ""
+            project_link = project_link.group(1).strip() if project_link else ""
             tags = tags.group(1).strip() if tags else None
             with plugin_config.input_config.plugin_path.open(
                 "r", encoding="utf-8"
             ) as f:
                 data: list[dict[str, str]] = json.load(f)
+
+            plugin_test_result = await DockerPluginTest(DOCKER_IMAGES, project_link, module_name).run("3.10")
+            plugin_test_metadata = plugin_test_result.get("metadata")
+            plugin_test_output = plugin_test_result.get("output")
+
             raw_data = {
                 "module_name": module_name,
                 "project_link": project_link,
                 "author": author,
                 "tags": tags,
                 "skip_plugin_test": plugin_config.skip_plugin_test,
-                "plugin_test_result": plugin_config.plugin_test_result,
-                "plugin_test_output": plugin_config.plugin_test_output,
-                "plugin_test_metadata": plugin_config.plugin_test_metadata,
+                "plugin_test_result": plugin_test_result,
+                "plugin_test_output": plugin_test_output,
+                "plugin_test_metadata": plugin_test_metadata,
                 "previous_data": data,
             }
             # 如果插件测试被跳过，则从议题中获取信息
@@ -247,14 +254,14 @@ def validate_info_from_issue(
                     raw_data["type"] = type.group(1).strip()
                 if supported_adapters:
                     raw_data["supported_adapters"] = supported_adapters.group(1).strip()
-            elif plugin_config.plugin_test_metadata:
-                raw_data["name"] = plugin_config.plugin_test_metadata.get("name")
-                raw_data["desc"] = plugin_config.plugin_test_metadata.get("description")
-                raw_data["homepage"] = plugin_config.plugin_test_metadata.get(
+            elif plugin_test_metadata:
+                raw_data["name"] = plugin_test_metadata.get("name")
+                raw_data["desc"] = plugin_test_metadata.get("description")
+                raw_data["homepage"] = plugin_test_metadata.get(
                     "homepage"
                 )
-                raw_data["type"] = plugin_config.plugin_test_metadata.get("type")
-                raw_data["supported_adapters"] = plugin_config.plugin_test_metadata.get(
+                raw_data["type"] = plugin_test_metadata.get("type")
+                raw_data["supported_adapters"] = plugin_test_metadata.get(
                     "supported_adapters"
                 )
             else:
@@ -525,7 +532,7 @@ async def trigger_registry_update(
                 "w", encoding="utf-8"
             ) as f:
                 json.dump([], f)
-            result = validate_info_from_issue(issue, publish_type)
+            result = await validate_info_from_issue(issue, publish_type)
             logger.debug(f"插件信息验证结果: {result}")
             if not result["valid"]:
                 logger.error("插件信息验证失败，跳过触发商店列表更新")

@@ -1,4 +1,4 @@
-from sys import version
+
 from typing import Any, Literal, TypedDict
 
 

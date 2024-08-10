@@ -1,17 +1,16 @@
 """测试并验证插件"""
 
 import json
-import os
 import re
-import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 from zoneinfo import ZoneInfo
 
 from src.utils.plugin_test import PluginTest, strip_ansi
 from src.utils.validation import PublishType, validate_info
-from utils.docker_test import DockerPluginTest
+from src.utils.docker_test import DockerPluginTest
+from src.utils.constants import DOCKER_IMAGES
 
 from .models import Metadata, Plugin, StorePlugin, TestResult
 from .utils import get_latest_version, get_upload_time
@@ -100,7 +99,8 @@ async def validate_plugin(
         }
     else:
         # test = PluginTest(project_link, module_name, config)
-        test = DockerPluginTest(project_link, module_name, config)
+
+        test = DockerPluginTest(DOCKER_IMAGES, project_link, module_name, config)
 
         # 将 GitHub Action 的输出文件重定向到测试文件夹内
         # test.github_output_file = (test.path / "output.txt").resolve()
