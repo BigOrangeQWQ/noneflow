@@ -20,10 +20,10 @@ from nonebot.adapters.github import (
 )
 from nonebot.params import Depends
 
+from src.plugins.publish import utils
 from src.utils.validation.models import PublishType
 
-from . import utils
-from .models import RepoInfo
+from src.plugins.publish.models import RepoInfo
 
 
 def get_repo_info(

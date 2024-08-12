@@ -10,8 +10,8 @@ from nonebot import logger
 from nonebot.adapters.github import Bot, GitHubBot
 
 from src.utils.validation import PublishType, ValidationDict, validate_info
-from utils.constants import DOCKER_IMAGES
-from utils.docker_test import DockerPluginTest
+from src.utils.constants import DOCKER_IMAGES
+from src.utils.docker_test import DockerPluginTest
 
 from .config import plugin_config
 from .constants import (
