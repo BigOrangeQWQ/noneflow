@@ -21,7 +21,7 @@ ENV TZ=Asia/Shanghai
 COPY --from=requirements-stage /tmp/requirements.txt /app/requirements.txt
 RUN apt-get update \
   && apt-get -y upgrade \
-  && apt-get install -y --no-install-recommends git \
+  && apt-get install -y --no-install-recommends git passwd \
   && pip install --no-cache-dir --upgrade -r /app/requirements.txt \
   && apt-get purge -y --auto-remove \
   && rm -rf /var/lib/apt/lists/* \
@@ -32,8 +32,8 @@ COPY src /app/src/
 
 # 使得 Noneflow 可以访问外围的 Docker 
 # Docker outside of Docker
-RUN USERADD NONEFLOW
-RUN USERMOD -aG docker NONEFLOW
+RUN useradd NONEFLOW
+RUN usermod -aG docker NONEFLOW
 USER NONEFLOW
 
 CMD ["python", "/app/bot.py"]
