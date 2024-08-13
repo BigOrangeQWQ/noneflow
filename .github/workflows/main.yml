@@ -104,8 +104,8 @@ jobs:
       - name: Build and Publish
         uses: docker/build-push-action@v5
         with:
-          file: ./Dockerfile
-          context: ./docker
+          file: ./docker/Dockerfile
+          context: .
           push: true
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}

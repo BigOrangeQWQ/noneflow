@@ -30,4 +30,10 @@ RUN apt-get update \
 COPY bot.py .env /app/
 COPY src /app/src/
 
+# 使得 Noneflow 可以访问外围的 Docker 
+# Docker outside of Docker
+RUN USERADD NONEFLOW
+RUN USERMOD -aG docker NONEFLOW
+USER NONEFLOW
+
 CMD ["python", "/app/bot.py"]

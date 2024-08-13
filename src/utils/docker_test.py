@@ -3,6 +3,11 @@ import asyncio
 import json
 from typing import Any
 
+import docker
+
+from utils.constants import DOCKER_IMAGES
+
+
 class DockerPluginTest:
     def __init__(
         self,
@@ -45,42 +50,38 @@ class DockerPluginTest:
         except TimeoutError:
             proc.terminate()
             stdout, stderr = b"", "执行命令超时".encode()
-            code = 1 # 非 0 返回，代表运行失败
+            code = 1  # 非 0 返回，代表运行失败
 
         return not code, stdout.decode(), stderr.decode()
-
-    async def check_docker_exist(self) -> bool:
-        """
-        检查是否存在 docker
-        """
-        return (await self.run_shell_command("docker -v"))[0]
 
     async def pull_docker_image(self, version: str):
         """
         拉取 docker 镜像
         """
         return await self.run_shell_command(
-            f"docker pull {self.docker_images.format(version)}"
+            f"sudo docker pull {self.docker_images.format(version)}"
         )
 
     async def run(self, version: str) -> dict[str, Any]:
-        if not await self.check_docker_exist():
-            raise Exception("运行 Docker 测试失败，请检查 Docker 是否存在")
+        image_name = DOCKER_IMAGES.format(version)
+        client = docker.DockerClient(
+            base_url="unix://var/run/docker.sock"
+        )  # 连接 Docker 环境
 
-        # 拉取插件测试镜像
-        await self.pull_docker_image(version)
+        client.images.pull(image_name)
 
-        # 运行容器，开始插件测试
-        status, output, _ = await self.run_shell_command(
-            f"docker run -e PLUGIN_INFO={self.key} -e PLUGIN_CONFIG={self.config} {self.docker_images.format(version)}",
-            timeout=600,
-        )
+        async def runner():
+            return client.containers.run(
+                image_name,
+                environment={"PLUGIN_INFO": self.key, "PLUGIN_CONFIG": self.config},
+                detach=True,
+            )
 
-        if status:
-            data = json.loads(output)
-            data["config"] = self.config
-            data["version"] = version
-            return data
+        container = await asyncio.wait_for(runner(), 600)
 
-        raise Exception("运行 Docker 测试失败，可能是 Images 拉取失败或运行错误")
+        output = container.logs()
 
+        data = json.loads(output)
+        data["config"] = self.config
+        data["version"] = version
+        return data
