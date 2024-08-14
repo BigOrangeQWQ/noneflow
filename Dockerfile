@@ -21,7 +21,7 @@ ENV TZ=Asia/Shanghai
 COPY --from=requirements-stage /tmp/requirements.txt /app/requirements.txt
 RUN apt-get update \
   && apt-get -y upgrade \
-  && apt-get install -y --no-install-recommends git passwd \
+  && apt-get install -y --no-install-recommends git \
   && pip install --no-cache-dir --upgrade -r /app/requirements.txt \
   && apt-get purge -y --auto-remove \
   && rm -rf /var/lib/apt/lists/* \
