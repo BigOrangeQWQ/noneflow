@@ -10,4 +10,5 @@ services:
       - noneflow_env.list
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /home/runner/work:/home/runner/work
       - ${GITHUB_WORKSPACE}:/github/workspace
