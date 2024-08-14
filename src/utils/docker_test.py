@@ -5,7 +5,7 @@ from typing import Any
 
 import docker
 
-from utils.constants import DOCKER_IMAGES
+from src.utils.constants import DOCKER_IMAGES
 
 
 class DockerPluginTest:
