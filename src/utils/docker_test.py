@@ -68,20 +68,11 @@ class DockerPluginTest:
             base_url="unix://var/run/docker.sock"
         )  # 连接 Docker 环境
 
-        client.images.pull(image_name)
-
-        async def runner():
-            return client.containers.run(
+        output = client.containers.run(
                 image_name,
                 environment={"PLUGIN_INFO": self.key, "PLUGIN_CONFIG": self.config},
-                detach=True,
-            )
-
-        print(self.key, self.config)
-        container = await asyncio.wait_for(runner(), 600)
-
-        output = container.logs(stdout=True, stderr=True).decode()
-        print(output)
+                detach=False,
+            ).decode()
 
         data = json.loads(output)
         data["config"] = self.config

@@ -261,7 +261,7 @@ class PluginTest:
         return self._run, self._lines_output
 
     async def command(
-        self, cmd: str, timeout: int | None = None
+        self, cmd: str, timeout: int = 300
     ) -> tuple[bool, str, str]:
         """
         执行命令
@@ -274,10 +274,7 @@ class PluginTest:
                 cwd=self.path,
                 env=self.env,
             )
-            if timeout:
-                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout)
-            else:
-                stdout, stderr = await proc.communicate()
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout)
             code = proc.returncode
         except TimeoutError:
             proc.terminate()
@@ -291,11 +288,7 @@ class PluginTest:
             self.path.mkdir()
 
             code, stdout, stderr = await self.command(
-                f"""poetry init -n &&
-                sed -i "s/\\^/~/g" pyproject.toml &&
-                poetry env info --ansi &&
-                poetry add {self.project_link}
-                """
+                f"""poetry init -n && sed -i "s/\\^/~/g" pyproject.toml && poetry env info --ansi && poetry add {self.project_link}"""
             )
 
             self._create = code
