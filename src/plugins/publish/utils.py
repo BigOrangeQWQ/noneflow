@@ -228,7 +228,7 @@ async def validate_info_from_issue(
             plugin_test_output = plugin_test_result.get("output")
 
             logger.info(
-                f"插件测试结果: {plugin_test_result['result']}, 输出: {plugin_test_output}"
+                f"插件测试结果: {plugin_test_result}"
             )
             logger.info(f"插件元数据: {plugin_test_metadata}")
             raw_data = {
