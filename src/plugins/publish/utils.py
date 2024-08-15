@@ -212,7 +212,9 @@ async def validate_info_from_issue(
             author = issue.user.login if issue.user else None
             module_name = PLUGIN_MODULE_NAME_PATTERN.search(body)
             project_link = PROJECT_LINK_PATTERN.search(body)
+            test_config = PLUGIN_CONFIG_PATTERN.search(body)
             tags = TAGS_PATTERN.search(body)
+            test_config = test_config.group(1).strip() if test_config else ""
             module_name  = module_name.group(1).strip() if module_name else ""
             project_link = project_link.group(1).strip() if project_link else ""
             tags = tags.group(1).strip() if tags else None
@@ -221,7 +223,7 @@ async def validate_info_from_issue(
             ) as f:
                 data: list[dict[str, str]] = json.load(f)
 
-            plugin_test_result = await DockerPluginTest(DOCKER_IMAGES, project_link, module_name).run("3.10")
+            plugin_test_result = await DockerPluginTest(DOCKER_IMAGES, project_link, module_name, test_config).run("3.10")
             plugin_test_metadata = plugin_test_result.get("metadata")
             plugin_test_output = plugin_test_result.get("output")
 

@@ -77,9 +77,11 @@ class DockerPluginTest:
                 detach=True,
             )
 
+        print(self.key, self.config)
         container = await asyncio.wait_for(runner(), 600)
 
-        output = container.logs()
+        output = container.logs(stdout=True, stderr=True).decode()
+        print(output)
 
         data = json.loads(output)
         data["config"] = self.config
