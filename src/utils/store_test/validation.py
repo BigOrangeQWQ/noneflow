@@ -1,49 +1,16 @@
 """测试并验证插件"""
 
 import json
-import re
 from datetime import datetime
-from pathlib import Path
 from typing import cast
 from zoneinfo import ZoneInfo
 
-from src.utils.plugin_test import PluginTest, strip_ansi
 from src.utils.validation import PublishType, validate_info
 from src.utils.docker_test import DockerPluginTest
 from src.utils.constants import DOCKER_IMAGES
 
-from .models import Metadata, Plugin, StorePlugin, TestResult
+from .models import DockerTestResult, Plugin, StorePlugin, TestResult
 from .utils import get_latest_version, get_upload_time
-
-
-def extract_metadata(path: Path) -> Metadata | None:
-    """提取插件元数据"""
-    with open(path / "output.txt", encoding="utf8") as f:
-        output = f.read()
-    match = re.search(r"METADATA<<EOF\s([\s\S]+?)\sEOF", output)
-    if match:
-        return json.loads(match.group(1))
-
-
-def extract_version(output: str, project_link: str) -> str | None:
-    """提取插件版本"""
-    # with open(path / "output.txt", encoding="utf8") as f:
-    #     output = f.read()
-    output = strip_ansi(output)
-
-    # 匹配 poetry show 的输出
-    match = re.search(r"version\s+:\s+(\S+)", output)
-    if match:
-        return match.group(1).strip()
-
-    # 匹配版本解析失败的情况
-    # 目前有很多插件都把信息填错了，没有使用 - 而是使用了 _
-    project_link = project_link.replace("_", "-")
-    match = re.search(
-        rf"depends on {project_link} \(\^(\S+)\), version solving failed\.", output
-    )
-    if match:
-        return match.group(1).strip()
 
 
 async def validate_plugin(
@@ -77,7 +44,7 @@ async def validate_plugin(
         # 跳过测试时无法获取到测试的版本
         test_version = None
         # 因为跳过测试，测试结果无意义
-        plugin_test_result = True
+        plugin_test_load = True
         plugin_test_output = "已跳过测试"
         # 提供了 data 参数，所以验证默认通过
         validation_result = True
@@ -102,28 +69,15 @@ async def validate_plugin(
 
         test = DockerPluginTest(DOCKER_IMAGES, project_link, module_name, config)
 
-        # 将 GitHub Action 的输出文件重定向到测试文件夹内
-        # test.github_output_file = (test.path / "output.txt").resolve()
-        # test.github_step_summary_file = (test.path / "summary.txt").resolve()
-        # 加载测试脚本需要从环境变量中获取 GitHub Action 的输出文件路径
-        # os.environ["GITHUB_OUTPUT"] = str(test.github_output_file)
-
         # 获取测试结果
-        plugin_test_result = await test.run("3.10")
-        cast(DockerPluginTest, plugin_test_result)
-        plugin_test_output = plugin_test_result["output"]
+        plugin_test_result: DockerTestResult = await test.run("3.10")
+        plugin_test_output = plugin_test_result["outputs"]
         metadata = plugin_test_result["metadata"]
-
-        plugin_test_result = plugin_test_result["status"]
-
-        # metadata = extract_metadata(test.path)
-        test_version = extract_version("".join(plugin_test_output), project_link)
-
-        # 测试并提取完数据后删除测试文件夹
-        # shutil.rmtree(test.path)
+        plugin_test_load = plugin_test_result["load"]
+        test_version = plugin_test_result["version"]
 
         # 当跳过测试的插件首次通过加载测试，则不再标记为跳过测试
-        should_skip = False if plugin_test_result else skip_test
+        should_skip = False if plugin_test_load else skip_test
 
         raw_data = {
             "module_name": module_name,
@@ -131,7 +85,7 @@ async def validate_plugin(
             "author": plugin["author"],
             "tags": json.dumps(plugin["tags"]),
             "skip_plugin_test": should_skip,
-            "plugin_test_result": plugin_test_result,
+            "plugin_test_result": plugin_test_load,
             "plugin_test_output": "",
             "plugin_test_metadata": metadata,
             "previous_data": [],
@@ -184,15 +138,16 @@ async def validate_plugin(
         "version": test_version,
         "results": {
             "validation": validation_result,
-            "load": plugin_test_result,
+            "load": plugin_test_load,
             "metadata": bool(metadata),
         },
-        "inputs": {"config": config},
+        "config": config,
         "outputs": {
             "validation": validation_output,
             "load": plugin_test_output,
             "metadata": metadata,
         },
+        "test_env": {plugin_test_result.get("test_env"): True},
     }
 
     return result, new_plugin

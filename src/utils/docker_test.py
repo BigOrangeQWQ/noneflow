@@ -1,11 +1,10 @@
-from asyncio import create_subprocess_shell, subprocess
-import asyncio
 import json
 from typing import Any
 
 import docker
 
 from src.utils.constants import DOCKER_IMAGES
+from utils.store_test.models import DockerTestResult
 
 
 class DockerPluginTest:
@@ -30,51 +29,18 @@ class DockerPluginTest:
         """
         return f"{self.project_link}:{self.module_name}"
 
-    async def run_shell_command(
-        self, cmd: str, timeout: int | None = None
-    ) -> tuple[bool, str, str]:
-        """
-        执行命令
-        """
-        try:
-            proc = await create_subprocess_shell(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            if timeout:
-                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout)
-            else:
-                stdout, stderr = await proc.communicate()
-            code = proc.returncode
-        except TimeoutError:
-            proc.terminate()
-            stdout, stderr = b"", "执行命令超时".encode()
-            code = 1  # 非 0 返回，代表运行失败
-
-        return not code, stdout.decode(), stderr.decode()
-
-    async def pull_docker_image(self, version: str):
-        """
-        拉取 docker 镜像
-        """
-        return await self.run_shell_command(
-            f"sudo docker pull {self.docker_images.format(version)}"
-        )
-
-    async def run(self, version: str) -> dict[str, Any]:
+    async def run(self, version: str) -> DockerTestResult:
         image_name = DOCKER_IMAGES.format(version)
-        client = docker.DockerClient(
-            base_url="unix://var/run/docker.sock"
-        )  # 连接 Docker 环境
+        # 连接 Docker 环境
+        client = docker.DockerClient(base_url="unix://var/run/docker.sock")
 
+        # 运行 Docker 容器，捕获输出。 容器内运行的代码拥有超时设限，此处无需设置超时
         output = client.containers.run(
-                image_name,
-                environment={"PLUGIN_INFO": self.key, "PLUGIN_CONFIG": self.config},
-                detach=False,
-            ).decode()
+            image_name,
+            environment={"PLUGIN_INFO": self.key, "PLUGIN_CONFIG": self.config},
+            detach=False,
+        ).decode()
 
         data = json.loads(output)
-        data["config"] = self.config
-        data["version"] = version
+        data["test_env"] = [f"python=={version}"]
         return data

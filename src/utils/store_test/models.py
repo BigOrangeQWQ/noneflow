@@ -1,4 +1,3 @@
-
 from typing import Any, Literal, TypedDict
 
 
@@ -42,21 +41,22 @@ class Metadata(TypedDict):
 
 
 class TestResult(TypedDict):
-    """测试结果"""
-
     time: str
+    config: str
     version: str | None
+    test_env: dict[str, bool]
     results: dict[Literal["validation", "load", "metadata"], bool]
-    inputs: dict[Literal["config"], str]
     outputs: dict[Literal["validation", "load", "metadata"], Any]
 
 
 class DockerTestResult(TypedDict):
     """Docker 测试结果"""
 
-    version: str
+    run: bool  # 是否运行
+    load: bool  # 是否加载成功
+    version: str | None
     config: str
-    metadata: Metadata
+    # 测试环境 python==3.10 pytest==6.2.5 nonebot2==2.0.0a1 ...
+    test_env: str
+    metadata: Metadata | None
     outputs: list[str]
-    is_run: bool
-    status: bool

@@ -12,6 +12,7 @@ from nonebot.adapters.github import Bot, GitHubBot
 from src.utils.validation import PublishType, ValidationDict, validate_info
 from src.utils.constants import DOCKER_IMAGES
 from src.utils.docker_test import DockerPluginTest
+from src.utils.plugin_test import strip_ansi
 
 from .config import plugin_config
 from .constants import (
@@ -215,7 +216,7 @@ async def validate_info_from_issue(
             test_config = PLUGIN_CONFIG_PATTERN.search(body)
             tags = TAGS_PATTERN.search(body)
             test_config = test_config.group(1).strip() if test_config else ""
-            module_name  = module_name.group(1).strip() if module_name else ""
+            module_name = module_name.group(1).strip() if module_name else ""
             project_link = project_link.group(1).strip() if project_link else ""
             tags = tags.group(1).strip() if tags else None
             with plugin_config.input_config.plugin_path.open(
@@ -223,13 +224,13 @@ async def validate_info_from_issue(
             ) as f:
                 data: list[dict[str, str]] = json.load(f)
 
-            plugin_test_result = await DockerPluginTest(DOCKER_IMAGES, project_link, module_name, test_config).run("3.10")
+            plugin_test_result = await DockerPluginTest(
+                DOCKER_IMAGES, project_link, module_name, test_config
+            ).run("3.10")
             plugin_test_metadata = plugin_test_result.get("metadata")
-            plugin_test_output = plugin_test_result.get("output")
+            plugin_test_output = strip_ansi(plugin_test_result.get("output"))
 
-            logger.info(
-                f"插件测试结果: {plugin_test_result}"
-            )
+            logger.info(f"插件测试结果: {plugin_test_result}")
             logger.info(f"插件元数据: {plugin_test_metadata}")
             raw_data = {
                 "module_name": module_name,
@@ -263,9 +264,7 @@ async def validate_info_from_issue(
             elif plugin_test_metadata:
                 raw_data["name"] = plugin_test_metadata.get("name")
                 raw_data["desc"] = plugin_test_metadata.get("description")
-                raw_data["homepage"] = plugin_test_metadata.get(
-                    "homepage"
-                )
+                raw_data["homepage"] = plugin_test_metadata.get("homepage")
                 raw_data["type"] = plugin_test_metadata.get("type")
                 raw_data["supported_adapters"] = plugin_test_metadata.get(
                     "supported_adapters"

@@ -163,6 +163,25 @@ def get_plugin_list() -> dict[str, str]:
     return {plugin["project_link"]: plugin["module_name"] for plugin in plugins}
 
 
+def extract_version(output: str, project_link: str) -> str | None:
+    """提取插件版本"""
+    output = strip_ansi(output)
+
+    # 匹配 poetry show 的输出
+    match = re.search(r"version\s+:\s+(\S+)", output)
+    if match:
+        return match.group(1).strip()
+
+    # 匹配版本解析失败的情况
+    # 目前有很多插件都把信息填错了，没有使用 - 而是使用了 _
+    project_link = project_link.replace("_", "-")
+    match = re.search(
+        rf"depends on {project_link} \(\^(\S+)\), version solving failed\.", output
+    )
+    if match:
+        return match.group(1).strip()
+
+
 class PluginTest:
     def __init__(self, project_info: str, config: str | None = None) -> None:
         """插件测试构造函数
@@ -174,6 +193,7 @@ class PluginTest:
         self.project_link = project_info.split(":")[0]
         self.module_name = project_info.split(":")[1]
         self.config = config
+        self._version = None
         self._plugin_list = None
 
         self._create = False
@@ -184,11 +204,6 @@ class PluginTest:
 
         # 插件测试目录
         self.test_dir = Path("plugin_test")
-
-        # 待修改，返回JSON格式的数据
-        # 通过环境变量获取 GITHUB 输出文件位置
-        # self.github_output_file = Path(os.environ.get("GITHUB_OUTPUT", ""))
-        # self.github_step_summary_file = Path(os.environ.get("GITHUB_STEP_SUMMARY", ""))
 
     @property
     def key(self) -> str:
@@ -252,17 +267,17 @@ class PluginTest:
                 {
                     "metadata": metadata,
                     "outputs": self._lines_output,
-                    "valid": self._run,
-                    "run": self._create
+                    "load": self._run,
+                    "run": self._create,
+                    "version": self._version,
+                    "config": self.config,
                 }
             )
         )
 
         return self._run, self._lines_output
 
-    async def command(
-        self, cmd: str, timeout: int = 300
-    ) -> tuple[bool, str, str]:
+    async def command(self, cmd: str, timeout: int = 300) -> tuple[bool, str, str]:
         """
         执行命令
         """
@@ -311,6 +326,10 @@ class PluginTest:
                 f"poetry show {self.project_link}"
             )
             if code:
+                # 获取插件版本
+                self._version = extract_version(stdout, self.project_link)
+
+                # 记录插件信息至输出
                 self._log_output(f"插件 {self.project_link} 的信息如下：")
                 for i in stdout.strip().splitlines():
                     self._log_output(f"    {i}")
