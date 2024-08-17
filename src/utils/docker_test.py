@@ -1,10 +1,8 @@
 import json
-from typing import Any
-
 import docker
 
 from src.utils.constants import DOCKER_IMAGES
-from utils.store_test.models import DockerTestResult
+from src.utils.store_test.models import DockerTestResult
 
 
 class DockerPluginTest:

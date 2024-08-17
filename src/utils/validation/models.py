@@ -8,11 +8,13 @@ from pydantic import (
     Field,
     ValidationInfo,
     ValidatorFunctionWrapHandler,
+    field_serializer,
     field_validator,
     model_validator,
 )
 from pydantic_core import PydanticCustomError
 from pydantic_extra_types.color import Color
+
 
 from .constants import (
     NAME_MAX_LENGTH,
@@ -20,7 +22,12 @@ from .constants import (
     PYPI_PACKAGE_NAME_PATTERN,
     PYTHON_MODULE_NAME_REGEX,
 )
-from .utils import check_pypi, check_url, get_adapters, resolve_adapter_name
+from .utils import (
+    check_pypi,
+    check_url,
+    get_adapters,
+    resolve_adapter_name,
+)
 
 if TYPE_CHECKING:
     from pydantic_core import ErrorDetails
@@ -104,6 +111,10 @@ class Tag(BaseModel):
     label: str = Field(max_length=10)
     color: Color
 
+    @field_serializer("color")
+    def serializer_color(self, color: Color):
+        return color.as_hex()
+
 
 class PublishInfo(abc.ABC, BaseModel):
     """发布信息"""
@@ -158,6 +169,8 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
     """插件类型"""
     supported_adapters: list[str] | None
     """插件支持的适配器"""
+    plugin_test_result: bool
+    """"插件测试结果"""
 
     @field_validator("type", mode="before")
     @classmethod
@@ -206,6 +219,18 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
                 },
             )
         return sorted(supported_adapters)
+
+    @field_validator("plugin_test_result", mode="before")
+    @classmethod
+    def plugin_test_result_validator(cls, v: bool, info: ValidationInfo) -> bool:
+        context = info.context
+        if context is None:
+            raise PydanticCustomError("validation_context", "未获取到验证上下文")
+        if v or context.get("skip_plugin_test"):
+            return True
+        raise PydanticCustomError(
+            "plugin_test", "插件无法正常加载", context.get("plugin_test_output")
+        )
 
 
 class AdapterPublishInfo(PublishInfo, PyPIMixin):
