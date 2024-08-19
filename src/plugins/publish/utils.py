@@ -19,7 +19,7 @@ from src.utils.validation.models import (
     BotPublishInfo,
     PluginPublishInfo,
 )
-from utils.validation.utils import translate_errors
+from src.utils.validation.utils import translate_errors
 
 from .config import plugin_config
 from .constants import (
