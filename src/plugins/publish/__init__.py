@@ -15,6 +15,7 @@ from src.utils.validation.models import PublishType
 from .config import plugin_config
 from .constants import BOT_MARKER, BRANCH_NAME_PREFIX, TITLE_MAX_LENGTH
 from .depends import (
+    filter_by_labels,
     get_installation_id,
     get_issue_number,
     get_pull_requests_by_label,
@@ -34,6 +35,7 @@ from .utils import (
     trigger_registry_update,
     update_file,
     validate_info_from_issue,
+    validate_plugin_info_from_issue,
 )
 
 
@@ -155,6 +157,90 @@ publish_check_matcher = on_type(
 @publish_check_matcher.handle(
     parameterless=[Depends(bypass_git), Depends(install_pre_commit_hooks)]
 )
+async def handle_publish_plugin_check(
+    bot: GitHubBot,
+    installation_id: int = Depends(get_installation_id),
+    repo_info: RepoInfo = Depends(get_repo_info),
+    issue_number: int = Depends(get_issue_number),
+    filter: bool = filter_by_labels(PublishType.PLUGIN),
+) -> None:
+    async with bot.as_installation(installation_id):
+        # 因为 Actions 会排队，触发事件相关的议题在 Actions 执行时可能已经被关闭
+        # 所以需要获取最新的议题状态
+        issue = (
+            await bot.rest.issues.async_get(
+                **repo_info.model_dump(), issue_number=issue_number
+            )
+        ).parsed_data
+
+        if issue.state != "open":
+            logger.info("议题未开启，已跳过")
+            await publish_check_matcher.finish()
+
+        # 是否需要跳过插件测试
+        plugin_config.skip_plugin_test = await should_skip_plugin_test(
+            bot, repo_info, issue_number
+        )
+
+        # 如果需要跳过插件测试，则修改议题内容，确保其包含插件所需信息
+        if plugin_config.skip_plugin_test:
+            await ensure_issue_content(bot, repo_info, issue_number, issue.body or "")
+
+        # 检查是否满足发布要求
+        # 仅在通过检查的情况下创建拉取请求
+        result = await validate_plugin_info_from_issue(issue)
+
+        # 设置拉取请求与议题的标题
+        # 限制标题长度，过长的标题不好看
+        title = f"{PublishType.PLUGIN.value}: {result['name'][:TITLE_MAX_LENGTH]}"
+
+        # 分支命名示例 publish/issue123
+        branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
+        if result["valid"]:
+            # 创建新分支
+            run_shell_command(["git", "switch", "-C", branch_name])
+            # 更新文件并提交更改
+            update_file(result)
+            commit_and_push(result, branch_name, issue_number)
+            # 创建拉取请求
+            await create_pull_request(
+                bot, repo_info, result, branch_name, issue_number, title
+            )
+        else:
+            # 如果之前已经创建了拉取请求，则将其转换为草稿
+            pulls = (
+                await bot.rest.pulls.async_list(
+                    **repo_info.model_dump(), head=f"{repo_info.owner}:{branch_name}"
+                )
+            ).parsed_data
+            if pulls and (pull := pulls[0]) and not pull.draft:
+                await bot.async_graphql(
+                    query="""mutation convertPullRequestToDraft($pullRequestId: ID!) {
+                        convertPullRequestToDraft(input: {pullRequestId: $pullRequestId}) {
+                            clientMutationId
+                        }
+                    }""",
+                    variables={"pullRequestId": pull.node_id},
+                )
+                logger.info("发布没通过检查，已将之前的拉取请求转换为草稿")
+            else:
+                logger.info("发布没通过检查，暂不创建拉取请求")
+
+        # 修改议题标题
+        # 需要等创建完拉取请求并打上标签后执行
+        # 不然会因为修改议题触发 Actions 导致标签没有正常打上
+        if issue.title != title:
+            await bot.rest.issues.async_update(
+                **repo_info.model_dump(), issue_number=issue_number, title=title
+            )
+            logger.info(f"议题标题已修改为 {title}")
+
+        await comment_issue(bot, repo_info, issue_number, result)
+
+
+@publish_check_matcher.handle(
+    parameterless=[Depends(bypass_git), Depends(install_pre_commit_hooks)]
+)
 async def handle_publish_check(
     bot: GitHubBot,
     installation_id: int = Depends(get_installation_id),
@@ -162,6 +248,9 @@ async def handle_publish_check(
     issue_number: int = Depends(get_issue_number),
     publish_type: PublishType = Depends(get_type_by_labels),
 ) -> None:
+    if publish_type == PublishType.PLUGIN:
+        logger.info("filter by other publish check")
+        return
     async with bot.as_installation(installation_id):
         # 因为 Actions 会排队，触发事件相关的议题在 Actions 执行时可能已经被关闭
         # 所以需要获取最新的议题状态
