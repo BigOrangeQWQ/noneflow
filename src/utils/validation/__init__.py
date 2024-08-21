@@ -1,10 +1,9 @@
 """验证数据是否符合规范"""
 
+from re import Pattern
 from typing import Any
 
-from pydantic import ValidationError
-
-from src.utils.store_test.models import DockerTestResult
+from pydantic import TypeAdapter, ValidationError
 
 from .models import (
     AdapterPublishInfo,
@@ -21,6 +20,24 @@ validation_model_map: dict[PublishType, type[PublishInfo]] = {
     PublishType.ADAPTER: AdapterPublishInfo,
     PublishType.PLUGIN: PluginPublishInfo,
 }
+
+
+def extract_publish_info_from_issue(
+    patterns: dict[str, Pattern[str]], body: str
+) -> dict[str, str]:
+    """
+    根据提供的正则表达式和 Issue 内容提取信息
+    返回对应的正则表达式的信息项名字作为键，正则表达式的搜索结果作为值
+    """
+    matchers = {key: pattern.search(body) for key, pattern in patterns.items()}
+    data = {
+        key: (match.group(1).strip()) if match else None
+        for key, match in matchers.items()
+    }
+    return TypeAdapter(dict[str, str]).validate_python(data)
+
+
+def validate_plugin_info(raw_data: dict[str, Any]) -> ValidationDict: ...
 
 
 def validate_info(
@@ -77,12 +94,11 @@ def validate_info(
             for key in metadata_keys:
                 data.pop(key, None)
 
-    return {
-        "valid": not errors,
-        "data": data,
-        "errors": errors,
-        # 方便插件使用的数据
-        "type": publish_type,
-        "name": data.get("name") or raw_data.get("name", ""),
-        "author": data.get("author", ""),
-    }
+    return ValidationDict(
+        valid=not errors,
+        data=data,
+        errors=errors,  # 方便插件使用的数据
+        type=publish_type,
+        name=data.get("name") or raw_data.get("name", ""),
+        author=data.get("author", ""),
+    )

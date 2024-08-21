@@ -3,14 +3,18 @@ import json
 import re
 import subprocess
 from typing import TYPE_CHECKING, Any
-
 from githubkit.exception import RequestFailed
 from githubkit.typing import Missing
 from nonebot import logger
 from nonebot.adapters.github import Bot, GitHubBot
 from pydantic import ValidationError
 
-from src.utils.validation import PublishType, ValidationDict, validate_info
+from src.utils.validation import (
+    PublishType,
+    ValidationDict,
+    validate_info,
+    extract_publish_info_from_issue,
+)
 from src.utils.constants import DOCKER_IMAGES
 from src.utils.docker_test import DockerPluginTest
 from src.utils.plugin_test import strip_ansi
@@ -63,6 +67,7 @@ if TYPE_CHECKING:
         WebhookIssuesReopenedPropIssueMergedLabels,
         WebhookPullRequestReviewSubmittedPropPullRequestPropLabelsItems,
     )
+    from pydantic_core import ErrorDetails
 
 
 def run_shell_command(command: list[str]):
@@ -132,10 +137,10 @@ def get_type_by_commit_message(message: str) -> PublishType | None:
 
 def commit_and_push(result: ValidationDict, branch_name: str, issue_number: int):
     """提交并推送"""
-    commit_message = f"{COMMIT_MESSAGE_PREFIX} {result['type'].value.lower()} {result['name']} (#{issue_number})"
+    commit_message = f"{COMMIT_MESSAGE_PREFIX} {result.type.value.lower()} {result.name} (#{issue_number})"
 
-    run_shell_command(["git", "config", "--global", "user.name", result["author"]])
-    user_email = f"{result['author']}@users.noreply.github.com"
+    run_shell_command(["git", "config", "--global", "user.name", result.author])
+    user_email = f"{result.author}@users.noreply.github.com"
     run_shell_command(["git", "config", "--global", "user.email", user_email])
     run_shell_command(["git", "add", "-A"])
     try:
@@ -173,18 +178,21 @@ def extract_name_from_title(title: str, publish_type: PublishType) -> str | None
 
 async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
     """从议题中提取插件信息"""
+    body: str = issue.body if issue.body else ""
+    author: str | None = issue.user.login if issue.user else None
+    raw_data: dict[str, Any] = extract_publish_info_from_issue(
+        {
+            "module_name": PLUGIN_MODULE_NAME_PATTERN,
+            "project_link": PROJECT_LINK_PATTERN,
+            "test_config": PLUGIN_CONFIG_PATTERN,
+            "tags": TAGS_PATTERN,
+        },
+        body,
+    )
+    test_config: str = raw_data["module_name"]
+    module_name: str = raw_data["project_link"]
+    project_link: str = raw_data["test_config"]
 
-    body = issue.body if issue.body else ""
-    author = issue.user.login if issue.user else None
-    module_name = PLUGIN_MODULE_NAME_PATTERN.search(body)
-    project_link = PROJECT_LINK_PATTERN.search(body)
-    test_config = PLUGIN_CONFIG_PATTERN.search(body)
-    tags = TAGS_PATTERN.search(body)
-
-    test_config = test_config.group(1).strip() if test_config else ""
-    module_name = module_name.group(1).strip() if module_name else ""
-    project_link = project_link.group(1).strip() if project_link else ""
-    tags = tags.group(1).strip() if tags else None
     with plugin_config.input_config.plugin_path.open("r", encoding="utf-8") as f:
         previous_data: list[dict[str, str]] = json.load(f)
 
@@ -196,38 +204,32 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
 
     logger.info(f"插件测试结果: {plugin_test_result}")
     logger.info(f"插件元数据: {plugin_test_metadata}")
-    raw_data = {
-        "module_name": module_name,
-        "project_link": project_link,
-        "author": author,
-        "tags": tags,
-        "skip_plugin_test": plugin_config.skip_plugin_test,
-        "plugin_test_result": plugin_test_result,
-        "plugin_test_output": plugin_test_output,
-        "plugin_test_metadata": plugin_test_metadata,
-        "previous_data": previous_data,
-    }
+    raw_data.update(
+        {
+            "skip_plugin_test": plugin_config.skip_plugin_test,
+            "plugin_test_result": plugin_test_result,
+            "plugin_test_output": plugin_test_output,
+            "plugin_test_metadata": plugin_test_metadata,
+            "previous_data": previous_data,
+            "author": author,
+        }
+    )
     # 如果插件测试被跳过，则从议题中获取信息
     if plugin_config.skip_plugin_test:
-        name = PLUGIN_NAME_PATTERN.search(body)
-        desc = PLUGIN_DESC_PATTERN.search(body)
-        homepage = PLUGIN_HOMEPAGE_PATTERN.search(body)
-        type = PLUGIN_TYPE_PATTERN.search(body)
-        supported_adapters = PLUGIN_SUPPORTED_ADAPTERS_PATTERN.search(body)
-
-        if name:
-            raw_data["name"] = name.group(1).strip()
-        if desc:
-            raw_data["desc"] = desc.group(1).strip()
-        if homepage:
-            raw_data["homepage"] = homepage.group(1).strip()
-        if type:
-            raw_data["type"] = type.group(1).strip()
-        if supported_adapters:
-            raw_data["supported_adapters"] = supported_adapters.group(1).strip()
+        plugin_info = extract_publish_info_from_issue(
+            {
+                "name": PLUGIN_NAME_PATTERN,
+                "desc": PLUGIN_DESC_PATTERN,
+                "homepage": PLUGIN_HOMEPAGE_PATTERN,
+                "type": PLUGIN_TYPE_PATTERN,
+                "supported_adapters": PLUGIN_SUPPORTED_ADAPTERS_PATTERN,
+            },
+            body,
+        )
+        raw_data.update(plugin_info)
     elif plugin_test_metadata:
-        raw_data.update(plugin_test_metadata)
         raw_data["desc"] = raw_data.get("description")
+        raw_data.update(plugin_test_metadata)
     else:
         # 插件缺少元数据
         # 可能为插件测试未通过，或者插件未按规范编写
@@ -276,37 +278,35 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
         for key in metadata_keys:
             data.pop(key, None)
 
-    return {
-        "valid": not errors,
-        "data": data,
-        "errors": errors,
+    return ValidationDict(
+        valid=not errors,
+        data=data,
+        errors=errors,
         # 方便插件使用的数据
-        "type": PublishType.PLUGIN,
-        "name": data.get("name") or raw_data.get("name", ""),
-        "author": data.get("author", ""),
-    }
+        type=PublishType.PLUGIN,
+        name=data.get("name") or raw_data.get("name", ""),
+        author=data.get("author", ""),
+    )
 
 
 async def validate_bot_info_from_issue(issue: "Issue") -> ValidationDict:
     body = issue.body if issue.body else ""
-    name = BOT_NAME_PATTERN.search(body)
-    desc = BOT_DESC_PATTERN.search(body)
-    author = issue.user.login if issue.user else None
-    homepage = BOT_HOMEPAGE_PATTERN.search(body)
-    tags = TAGS_PATTERN.search(body)
+    author = issue.user.login if issue.user else ""
 
-    raw_data = {
-        "name": name.group(1).strip() if name else None,
-        "desc": desc.group(1).strip() if desc else None,
-        "author": author,
-        "homepage": homepage.group(1).strip() if homepage else None,
-        "tags": tags.group(1).strip() if tags else None,
-    }
+    raw_data: dict[str, str] = extract_publish_info_from_issue(
+        {
+            "name": BOT_NAME_PATTERN,
+            "desc": BOT_DESC_PATTERN,
+            "homepage": BOT_HOMEPAGE_PATTERN,
+            "tags": TAGS_PATTERN,
+        },
+        body,
+    )
+    raw_data["author"] = author
 
     validation_context = {
         "valid_data": {},
     }
-
     try:
         data = BotPublishInfo.model_validate(
             raw_data, context=validation_context
@@ -319,39 +319,35 @@ async def validate_bot_info_from_issue(issue: "Issue") -> ValidationDict:
     # 翻译错误
     errors = translate_errors(errors)
 
-    return {
-        "valid": not errors,
-        "data": data,
-        "errors": errors,
+    return ValidationDict(
+        valid=not errors,
+        data=data,
+        errors=errors,
         # 方便插件使用的数据
-        "type": PublishType.BOT,
-        "name": data.get("name") or raw_data.get("name", ""),
-        "author": data.get("author", ""),
-    }
+        type=PublishType.BOT,
+        name=data.get("name") or raw_data.get("name", ""),
+        author=data.get("author", ""),
+    )
 
 
 async def validate_adapter_info_from_issue(issue: "Issue") -> ValidationDict:
     body = issue.body if issue.body else ""
-    module_name = ADAPTER_MODULE_NAME_PATTERN.search(body)
-    project_link = PROJECT_LINK_PATTERN.search(body)
-    name = ADAPTER_NAME_PATTERN.search(body)
-    desc = ADAPTER_DESC_PATTERN.search(body)
-    author = issue.user.login if issue.user else None
-    homepage = ADAPTER_HOMEPAGE_PATTERN.search(body)
-    tags = TAGS_PATTERN.search(body)
+    author = issue.user.login if issue.user else ""
+    raw_data: dict[str, Any] = extract_publish_info_from_issue(
+        {
+            "module_name": ADAPTER_MODULE_NAME_PATTERN,
+            "project_link": PROJECT_LINK_PATTERN,
+            "name": ADAPTER_NAME_PATTERN,
+            "desc": ADAPTER_DESC_PATTERN,
+            "homepage": ADAPTER_HOMEPAGE_PATTERN,
+            "tags": TAGS_PATTERN,
+        },
+        body,
+    )
     with plugin_config.input_config.adapter_path.open("r", encoding="utf-8") as f:
         previous_data: list[dict[str, str]] = json.load(f)
-
-    raw_data = {
-        "module_name": module_name.group(1).strip() if module_name else None,
-        "project_link": project_link.group(1).strip() if project_link else None,
-        "name": name.group(1).strip() if name else None,
-        "desc": desc.group(1).strip() if desc else None,
-        "author": author,
-        "homepage": homepage.group(1).strip() if homepage else None,
-        "tags": tags.group(1).strip() if tags else None,
-        "previous_data": previous_data,
-    }
+    raw_data["author"] = author
+    raw_data["previous_data"] = previous_data
 
     # 如果升级至 pydantic 2 后，可以使用 validation-context
     # https://docs.pydantic.dev/latest/usage/validators/#validation-context
@@ -359,11 +355,11 @@ async def validate_adapter_info_from_issue(issue: "Issue") -> ValidationDict:
         "valid_data": {},
     }
 
+    errors: list["ErrorDetails"] = []
     try:
         data = AdapterPublishInfo.model_validate(
             raw_data, context=validation_context
         ).model_dump()
-        errors = []
     except ValidationError as exc:
         errors = exc.errors()
         data: dict[str, Any] = validation_context["valid_data"]
@@ -371,15 +367,15 @@ async def validate_adapter_info_from_issue(issue: "Issue") -> ValidationDict:
     # 翻译错误
     errors = translate_errors(errors)
 
-    return {
-        "valid": not errors,
-        "data": data,
-        "errors": errors,
+    return ValidationDict(
+        valid=not errors,
+        data=data,
+        errors=errors,
         # 方便插件使用的数据
-        "type": PublishType.ADAPTER,
-        "name": data.get("name") or raw_data.get("name", ""),
-        "author": data.get("author", ""),
-    }
+        type=PublishType.ADAPTER,
+        name=data.get("name") or raw_data.get("name", ""),
+        author=data.get("author", ""),
+    )
 
 
 async def validate_info_from_issue(
@@ -574,8 +570,8 @@ def generate_validation_dict_from_file(
 
 def update_file(result: ValidationDict) -> None:
     """更新文件"""
-    new_data = result["data"]
-    match result["type"]:
+    new_data = result.data
+    match result.type:
         case PublishType.ADAPTER:
             path = plugin_config.input_config.adapter_path
         case PublishType.BOT:
@@ -653,7 +649,7 @@ async def create_pull_request(
         await bot.rest.issues.async_add_labels(
             **repo_info.model_dump(),
             issue_number=pull.number,
-            labels=[result["type"].value],
+            labels=[result.type.value],
         )
         logger.info("拉取请求创建完毕")
     except RequestFailed:
@@ -757,15 +753,15 @@ async def trigger_registry_update(
                 json.dump([], f)
             result = await validate_info_from_issue(issue, publish_type)
             logger.debug(f"插件信息验证结果: {result}")
-            if not result["valid"]:
+            if not result.valid:
                 logger.error("插件信息验证失败，跳过触发商店列表更新")
                 return
 
             client_payload = {
                 "type": publish_type.value,
-                "key": f"{result['data']['project_link']}:{result['data']['module_name']}",
+                "key": f"{result.data['project_link']}:{result.data['module_name']}",
                 "config": config.group(1) if config else "",
-                "data": json.dumps(result["data"]),
+                "data": json.dumps(result.data),
             }
         else:
             # 从议题中获取的插件信息

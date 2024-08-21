@@ -1,4 +1,5 @@
 import re
+from typing_extensions import LiteralString
 
 # PyPI 格式
 PYPI_PACKAGE_NAME_PATTERN = re.compile(
@@ -14,7 +15,7 @@ PYTHON_MODULE_NAME_REGEX = re.compile(
 NAME_MAX_LENGTH = 50
 """名称最大长度"""
 
-PLUGIN_VALID_TYPE = ["application", "library"]
+PLUGIN_VALID_TYPE: list[LiteralString] = ["application", "library"]
 """插件类型当前只支持 application 和 library"""
 
 # Pydantic 错误信息翻译
@@ -27,4 +28,5 @@ MESSAGE_TRANSLATIONS = {
     "color_error": "颜色格式不正确",
     "string_too_long": "字符串长度不能超过 {max_length} 个字符",
     "too_long": "列表长度不能超过 {max_length} 个元素",
+    "plugin.test": "插件无法正常加载",
 }

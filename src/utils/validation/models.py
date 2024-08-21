@@ -1,7 +1,7 @@
 import abc
 import json
 from enum import Enum
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any
 
 from pydantic import (
     BaseModel,
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from pydantic_core import ErrorDetails
 
 
-class ValidationDict(TypedDict):
+class ValidationDict(BaseModel):
     valid: bool
     type: "PublishType"
     name: str
@@ -51,6 +51,9 @@ class PublishType(Enum):
     BOT = "Bot"
     PLUGIN = "Plugin"
     ADAPTER = "Adapter"
+
+    def __str__(self) -> str:
+        return self.value
 
 
 class PyPIMixin(BaseModel):
@@ -229,7 +232,7 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
         if v or context.get("skip_plugin_test"):
             return True
         raise PydanticCustomError(
-            "plugin_test", "插件无法正常加载", context.get("plugin_test_output")
+            "plugin.test", "插件无法正常加载", context.get("plugin_test_output")
         )
 
 

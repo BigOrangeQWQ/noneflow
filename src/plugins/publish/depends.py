@@ -76,17 +76,6 @@ def get_type_by_labels(
     return utils.get_type_by_labels(labels)
 
 
-def filter_by_labels(filter_type: PublishType) -> bool:
-    """通过发布类型过滤不适配的议题"""
-
-    def _filter_by_labels(
-        publish_type: PublishType | None = Depends(get_type_by_labels),
-    ) -> None | bool:
-        return None if publish_type != filter_type else True
-
-    return Depends(_filter_by_labels)
-
-
 def get_type_by_title(title: str = Depends(get_issue_title)) -> PublishType | None:
     """通过标题获取类型"""
     return utils.get_type_by_title(title)

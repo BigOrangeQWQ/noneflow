@@ -55,6 +55,25 @@ ADAPTER_DESC_PATTERN = re.compile(ISSUE_PATTERN.format("适配器描述"))
 ADAPTER_MODULE_NAME_PATTERN = re.compile(ISSUE_PATTERN.format("适配器 import 包名"))
 ADAPTER_HOMEPAGE_PATTERN = re.compile(ISSUE_PATTERN.format("适配器项目仓库/主页链接"))
 
+# 正则表达式对应的信息项名
+PATTERN_NAME_MAP = {
+    PROJECT_LINK_PATTERN: "project_link",
+    TAGS_PATTERN: "tags",
+    PLUGIN_MODULE_NAME_PATTERN: "module_name",
+    PLUGIN_NAME_PATTERN: "name",
+    PLUGIN_DESC_PATTERN: "desc",
+    PLUGIN_HOMEPAGE_PATTERN: "homepage",
+    PLUGIN_TYPE_PATTERN: "type",
+    PLUGIN_SUPPORTED_ADAPTERS_PATTERN: "supported_adapters",
+    ADAPTER_NAME_PATTERN: "name",
+    ADAPTER_DESC_PATTERN: "desc",
+    ADAPTER_MODULE_NAME_PATTERN: "module_name",
+    ADAPTER_HOMEPAGE_PATTERN: "homepage",
+    BOT_NAME_PATTERN: "name",
+    BOT_DESC_PATTERN: "desc",
+    BOT_HOMEPAGE_PATTERN: "homepage",
+}
+
 # 发布信息项对应的中文名
 LOC_NAME_MAP = {
     "name": "名称",

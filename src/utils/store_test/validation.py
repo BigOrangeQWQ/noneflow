@@ -5,12 +5,25 @@ from datetime import datetime
 from typing import cast
 from zoneinfo import ZoneInfo
 
+import click
+
 from src.utils.validation import PublishType, validate_info
 from src.utils.docker_test import DockerPluginTest
 from src.utils.constants import DOCKER_IMAGES
 
 from .models import DockerTestResult, Plugin, StorePlugin, TestResult
 from .utils import get_latest_version, get_upload_time
+
+
+def merge_plugin_info(
+    plugin_test_result: DockerTestResult,
+    plugin_data: str | None,
+    previous_plugin: Plugin | None,
+):
+    """
+    将插件信息的各种信息合并成 raw_data
+    """
+    ...
 
 
 async def validate_plugin(
@@ -71,6 +84,7 @@ async def validate_plugin(
 
         # 获取测试结果
         plugin_test_result: DockerTestResult = await test.run("3.10")
+        click.echo(f"测试结果：{plugin_test_result}")
         plugin_test_output = plugin_test_result["outputs"]
         metadata = plugin_test_result["metadata"]
         plugin_test_load = plugin_test_result["load"]
@@ -107,8 +121,8 @@ async def validate_plugin(
         validation_info_result = validate_info(PublishType.PLUGIN, raw_data)
 
         # 如果验证失败，则使用上次的插件数据
-        if validation_info_result["valid"]:
-            new_plugin = cast(Plugin, validation_info_result["data"])
+        if validation_info_result.valid:
+            new_plugin = cast(Plugin, validation_info_result.data)
         elif previous_plugin:
             new_plugin = previous_plugin
         else:
@@ -117,19 +131,19 @@ async def validate_plugin(
         if new_plugin:
             # 插件验证过程中无法获取是否是官方插件，因此需要从原始数据中获取
             new_plugin["is_official"] = is_official
-            new_plugin["valid"] = validation_info_result["valid"]
+            new_plugin["valid"] = validation_info_result.valid
             # 优先使用测试中获取的版本号
             new_plugin["version"] = test_version or pypi_version
             new_plugin["time"] = pypi_time
             new_plugin["skip_test"] = should_skip
 
-        validation_result = validation_info_result["valid"]
+        validation_result = validation_info_result.valid
         validation_output = (
             None
-            if validation_info_result["valid"]
+            if validation_info_result.valid
             else {
-                "data": validation_info_result["data"],
-                "errors": validation_info_result["errors"],
+                "data": validation_info_result.data,
+                "errors": validation_info_result.errors,
             }
         )
 
@@ -147,7 +161,7 @@ async def validate_plugin(
             "load": plugin_test_output,
             "metadata": metadata,
         },
-        "test_env": {plugin_test_result.get("test_env"): True},
+        "test_env": {plugin_test_result.get("test_env", "unknown==1.0"): True},
     }
 
     return result, new_plugin
