@@ -29,17 +29,7 @@ from .utils import (
     resolve_adapter_name,
 )
 
-if TYPE_CHECKING:
-    from pydantic_core import ErrorDetails
-
-
-class ValidationDict(BaseModel):
-    valid: bool
-    type: "PublishType"
-    name: str
-    author: str
-    data: dict[str, Any]
-    errors: "list[ErrorDetails]"
+from pydantic_core import ErrorDetails
 
 
 class PublishType(Enum):
@@ -54,6 +44,15 @@ class PublishType(Enum):
 
     def __str__(self) -> str:
         return self.value
+
+
+class ValidationDict(BaseModel):
+    valid: bool
+    type: PublishType
+    name: str
+    author: str
+    data: dict[str, Any]
+    errors: list[ErrorDetails]
 
 
 class PyPIMixin(BaseModel):
