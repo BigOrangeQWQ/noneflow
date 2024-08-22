@@ -1,7 +1,7 @@
 import abc
 import json
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pydantic import (
     BaseModel,
@@ -14,6 +14,8 @@ from pydantic import (
 )
 from pydantic_core import PydanticCustomError
 from pydantic_extra_types.color import Color
+
+from src.utils.store_test.models import Metadata
 
 
 from .constants import (
@@ -126,7 +128,7 @@ class PublishInfo(abc.ABC, BaseModel):
     author: str
     homepage: str
     tags: list[Tag] = Field(max_length=3)
-    is_official: bool = False
+    is_official: bool = Field(default=False)
 
     @field_validator("*", mode="wrap")
     @classmethod
@@ -171,8 +173,10 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
     """插件类型"""
     supported_adapters: list[str] | None
     """插件支持的适配器"""
-    plugin_test_result: bool
+    plugin_test_load: bool
     """"插件测试结果"""
+    plugin_test_metadata: Metadata | None
+    """插件测试元数据"""
 
     @field_validator("type", mode="before")
     @classmethod
@@ -224,14 +228,32 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
 
     @field_validator("plugin_test_result", mode="before")
     @classmethod
-    def plugin_test_result_validator(cls, v: bool, info: ValidationInfo) -> bool:
+    def plugin_test_load_validator(cls, v: bool, info: ValidationInfo) -> bool:
         context = info.context
         if context is None:
             raise PydanticCustomError("validation_context", "未获取到验证上下文")
         if v or context.get("skip_plugin_test"):
             return True
         raise PydanticCustomError(
-            "plugin.test", "插件无法正常加载", context.get("plugin_test_output")
+            "plugin.test",
+            "插件无法正常加载",
+            {"plugin_test_output": context.get("plugin_test_output")},
+        )
+
+    @field_validator("plugin_test_metadata", mode="before")
+    @classmethod
+    def plugin_test_metadata_validator(
+        cls, v: Metadata | None, info: ValidationInfo
+    ) -> Metadata | None:
+        context = info.context
+        if context is None:
+            raise PydanticCustomError("validation_context", "未获取到验证上下文")
+        if not v or context.get("skip_plugin_test"):
+            return None
+        raise PydanticCustomError(
+            "plugin.metadata",
+            "无法获取到插件元数据",
+            {"plugin_test_output": context.get("plugin_test_output")},
         )
 
 

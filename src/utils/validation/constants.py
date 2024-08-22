@@ -29,4 +29,6 @@ MESSAGE_TRANSLATIONS = {
     "string_too_long": "字符串长度不能超过 {max_length} 个字符",
     "too_long": "列表长度不能超过 {max_length} 个元素",
     "plugin.test": "插件无法正常加载",
+    "plugin.metadata": "无法获取到插件元数据",
+    "plugin.type": "插件类型只能是 application 或 library",
 }
