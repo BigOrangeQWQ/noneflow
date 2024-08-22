@@ -226,7 +226,7 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
             )
         return sorted(supported_adapters)
 
-    @field_validator("plugin_test_result", mode="before")
+    @field_validator("plugin_test_load", mode="before")
     @classmethod
     def plugin_test_load_validator(cls, v: bool, info: ValidationInfo) -> bool:
         context = info.context
