@@ -28,6 +28,14 @@ class DockerPluginTest:
         return f"{self.project_link}:{self.module_name}"
 
     async def run(self, version: str) -> DockerTestResult:
+        """运行 Docker 容器测试插件
+
+        Args:
+            version (str): 对应的 Python 版本
+
+        Returns:
+            dict[str, Any]: 测试结果
+        """
         image_name = DOCKER_IMAGES.format(version)
         # 连接 Docker 环境
         client = docker.DockerClient(base_url="unix://var/run/docker.sock")
@@ -41,4 +49,4 @@ class DockerPluginTest:
 
         data = json.loads(output)
         data["test_env"] = [f"python=={version}"]
-        return data
+        return DockerTestResult.model_construct(**data)

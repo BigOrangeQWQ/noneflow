@@ -1,9 +1,7 @@
 """测试并验证插件"""
 
 import json
-from datetime import datetime
-from typing import cast
-from zoneinfo import ZoneInfo
+from typing import Any
 
 import click
 
@@ -11,26 +9,15 @@ from src.utils.validation import PublishType, validate_info
 from src.utils.docker_test import DockerPluginTest
 from src.utils.constants import DOCKER_IMAGES
 
-from .models import DockerTestResult, Plugin, StorePlugin, TestResult
+from .models import Metadata, Plugin, StorePlugin, TestResult
 from .utils import get_latest_version, get_upload_time
-
-
-def merge_plugin_info(
-    plugin_test_result: DockerTestResult,
-    plugin_data: str | None,
-    previous_plugin: Plugin | None,
-):
-    """
-    将插件信息的各种信息合并成 raw_data
-    """
-    ...
 
 
 async def validate_plugin(
     plugin: StorePlugin,
     config: str,
     skip_test: bool,
-    data: str | None = None,
+    plugin_data: str | None = None,
     previous_plugin: Plugin | None = None,
 ) -> tuple[TestResult, Plugin | None]:
     """验证插件
@@ -41,19 +28,17 @@ async def validate_plugin(
 
     如果插件验证失败，返回的插件数据为 None
     """
-    # 当前时间
-    now_time_str = datetime.now(ZoneInfo("Asia/Shanghai")).isoformat()
     # 需要从商店插件数据中获取的信息
-    project_link = plugin["project_link"]
-    module_name = plugin["module_name"]
-    is_official = plugin["is_official"]
+    project_link = plugin.project_link
+    module_name = plugin.module_name
+    is_official = plugin.is_official
     # 从 PyPI 获取信息
     pypi_version = get_latest_version(project_link)
     pypi_time = get_upload_time(project_link)
     # 如果传递了 data 参数
     # 则直接使用 data 作为插件数据
     # 并且将 skip_test 设置为 True
-    if data:
+    if plugin_data:
         # 跳过测试时无法获取到测试的版本
         test_version = None
         # 因为跳过测试，测试结果无意义
@@ -63,41 +48,40 @@ async def validate_plugin(
         validation_result = True
         validation_output = None
         # 为插件数据添加上所需的信息
-        new_plugin = json.loads(data)
+        new_plugin = json.loads(plugin_data)
         new_plugin["valid"] = True
         new_plugin["version"] = pypi_version
         new_plugin["time"] = pypi_time
         new_plugin["skip_test"] = True
-        new_plugin = cast(Plugin, new_plugin)
+        new_plugin = Plugin(**new_plugin)
 
-        metadata = {
-            "name": new_plugin.get("name"),
-            "description": new_plugin.get("desc"),
-            "homepage": new_plugin.get("homepage"),
-            "type": new_plugin.get("type"),
-            "supported_adapters": new_plugin.get("supported_adapters"),
-        }
+        metadata: Metadata | None = Metadata.model_construct(
+            **{
+                "name": new_plugin.name,
+                "description": new_plugin.desc,
+                "homepage": new_plugin.homepage,
+                "type": new_plugin.type,
+                "supported_adapters": new_plugin.supported_adapters,
+            }
+        )
     else:
-        # test = PluginTest(project_link, module_name, config)
-
-        test = DockerPluginTest(DOCKER_IMAGES, project_link, module_name, config)
-
+        test_result = await DockerPluginTest(
+            DOCKER_IMAGES, project_link, module_name, config
+        ).run("3.10")
         # 获取测试结果
-        plugin_test_result: DockerTestResult = await test.run("3.10")
-        click.echo(f"测试结果：{plugin_test_result}")
-        plugin_test_output = plugin_test_result["outputs"]
-        metadata = plugin_test_result["metadata"]
-        plugin_test_load = plugin_test_result["load"]
-        test_version = plugin_test_result["version"]
-
+        click.echo(f"测试结果：{test_result}")
+        plugin_test_output = test_result.outputs
+        plugin_test_load = test_result.load
+        test_version = test_result.version
+        metadata = test_result.metadata
         # 当跳过测试的插件首次通过加载测试，则不再标记为跳过测试
-        should_skip = False if plugin_test_load else skip_test
+        should_skip: bool = False if plugin_test_load else skip_test
 
-        raw_data = {
+        raw_data: dict[str, Any] = {
             "module_name": module_name,
             "project_link": project_link,
-            "author": plugin["author"],
-            "tags": json.dumps(plugin["tags"]),
+            "author": plugin.author,
+            "tags": plugin.tags,
             "skip_plugin_test": should_skip,
             "plugin_test_result": plugin_test_load,
             "plugin_test_output": "",
@@ -106,62 +90,56 @@ async def validate_plugin(
         }
 
         if metadata:
-            raw_data["name"] = metadata.get("name")
-            raw_data["desc"] = metadata.get("description")
-            raw_data["homepage"] = metadata.get("homepage")
-            raw_data["type"] = metadata.get("type")
-            raw_data["supported_adapters"] = metadata.get("supported_adapters")
+            raw_data.update(metadata.model_dump())
         elif skip_test and previous_plugin:
-            raw_data["name"] = previous_plugin.get("name")
-            raw_data["desc"] = previous_plugin.get("desc")
-            raw_data["homepage"] = previous_plugin.get("homepage")
-            raw_data["type"] = previous_plugin.get("type")
-            raw_data["supported_adapters"] = previous_plugin.get("supported_adapters")
+            raw_data.update(previous_plugin.metadata().model_dump())
+        validation_data = validate_info(PublishType.PLUGIN, raw_data)
 
-        validation_info_result = validate_info(PublishType.PLUGIN, raw_data)
-
+        new_data = {
+            # 插件验证过程中无法获取是否是官方插件，因此需要从原始数据中获取
+            "is_official": is_official,
+            "valid": validation_data.valid,
+            "version": test_version or pypi_version,
+            "time": pypi_time,
+            "skip_test": should_skip,
+        }
         # 如果验证失败，则使用上次的插件数据
-        if validation_info_result.valid:
-            new_plugin = cast(Plugin, validation_info_result.data)
+        if validation_data.valid:
+            data = validation_data.data
+            data.update(new_data)
+            new_plugin = Plugin.model_construct(**validation_data.data)
         elif previous_plugin:
-            new_plugin = previous_plugin
+            data = previous_plugin.model_dump()
+            data.update(new_data)
+            new_plugin = Plugin.model_construct(**data)
+
         else:
             new_plugin = None
 
-        if new_plugin:
-            # 插件验证过程中无法获取是否是官方插件，因此需要从原始数据中获取
-            new_plugin["is_official"] = is_official
-            new_plugin["valid"] = validation_info_result.valid
-            # 优先使用测试中获取的版本号
-            new_plugin["version"] = test_version or pypi_version
-            new_plugin["time"] = pypi_time
-            new_plugin["skip_test"] = should_skip
-
-        validation_result = validation_info_result.valid
+        validation_result = validation_data.valid
         validation_output = (
             None
-            if validation_info_result.valid
+            if validation_data.valid
             else {
-                "data": validation_info_result.data,
-                "errors": validation_info_result.errors,
+                "data": validation_data.data,
+                "errors": validation_data.errors,
             }
         )
 
-    result: TestResult = {
-        "time": now_time_str,
-        "version": test_version,
-        "results": {
+    result: TestResult = TestResult(
+        version=test_version,
+        results={
             "validation": validation_result,
             "load": plugin_test_load,
             "metadata": bool(metadata),
         },
-        "config": config,
-        "outputs": {
+        config=config,
+        outputs={
             "validation": validation_output,
             "load": plugin_test_output,
             "metadata": metadata,
         },
-        "test_env": {plugin_test_result.get("test_env", "unknown==1.0"): True},
-    }
+        test_env={test_result.test_env: True},
+    )
 
     return result, new_plugin

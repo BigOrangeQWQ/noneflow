@@ -3,6 +3,7 @@
 REGISTRY_BASE_URL = "https://raw.githubusercontent.com/nonebot/registry/results"
 REGISTRY_RESULTS_URL = f"{REGISTRY_BASE_URL}/results.json"
 REGISTRY_PLUGINS_URL = f"{REGISTRY_BASE_URL}/plugins.json"
+REGISTRY_PLUGIN_CONFIG_URL = f"{REGISTRY_BASE_URL}/plugin_configs.json"
 
 # NoneBot 插件商店
 # https://github.com/nonebot/nonebot2/tree/master/assets

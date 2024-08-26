@@ -1,17 +1,34 @@
-from typing import Any, Literal, TypedDict
+from datetime import datetime
+from typing import Any, Literal
+from zoneinfo import ZoneInfo
+
+from pydantic import BaseModel, Field
+
+from src.utils.validation.models import Tag
 
 
-class StorePlugin(TypedDict):
+class StorePlugin(BaseModel):
     """NoneBot 仓库中的插件数据"""
 
     module_name: str
     project_link: str
     author: str
-    tags: list[Any]
+    tags: list[Tag]
     is_official: bool
 
 
-class Plugin(TypedDict):
+class Metadata(BaseModel):
+    """插件元数据"""
+
+    name: str
+    # 元数据序列化时使用 desc 字段，符合 Plugin 的描述字段名 desc
+    description: str = Field(serialization_alias="desc")
+    homepage: str
+    type: Literal["library", "application"]
+    supported_adapters: list[str] | None = None
+
+
+class Plugin(BaseModel):
     """NoneBot 商店插件数据"""
 
     module_name: str
@@ -20,36 +37,37 @@ class Plugin(TypedDict):
     desc: str
     author: str
     homepage: str
-    tags: list[Any]
+    tags: list[Tag]
     is_official: bool
-    type: str
-    supported_adapters: list[str] | None
+    type: str | None
+    supported_adapters: list[str] | None = None
     valid: bool
     time: str
     version: str
     skip_test: bool
 
+    def metadata(self) -> Metadata:
+        return Metadata.model_construct(
+            name=self.name,
+            description=self.desc,
+            homepage=self.homepage,
+            type=self.type,
+            supported_adapters=self.supported_adapters,
+        )
 
-class Metadata(TypedDict):
-    """插件元数据"""
 
-    name: str
-    description: str
-    homepage: str
-    type: str
-    supported_adapters: list[str]
-
-
-class TestResult(TypedDict):
-    time: str
-    config: str
+class TestResult(BaseModel):
+    time: str = Field(
+        default_factory=lambda: datetime.now(ZoneInfo("Asia/Shanghai")).isoformat()
+    )
+    config: str = ""
     version: str | None
-    test_env: dict[str, bool]
+    test_env: dict[str, bool] | None = None
     results: dict[Literal["validation", "load", "metadata"], bool]
     outputs: dict[Literal["validation", "load", "metadata"], Any]
 
 
-class DockerTestResult(TypedDict):
+class DockerTestResult(BaseModel):
     """Docker 测试结果"""
 
     run: bool  # 是否运行
@@ -57,6 +75,6 @@ class DockerTestResult(TypedDict):
     version: str | None
     config: str
     # 测试环境 python==3.10 pytest==6.2.5 nonebot2==2.0.0a1 ...
-    test_env: str
+    test_env: str = Field(default="unknown")
     metadata: Metadata | None
     outputs: list[str]

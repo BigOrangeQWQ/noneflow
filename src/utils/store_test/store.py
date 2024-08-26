@@ -1,6 +1,7 @@
 import click
 
 from src.utils.constants import (
+    REGISTRY_PLUGIN_CONFIG_URL,
     REGISTRY_PLUGINS_URL,
     REGISTRY_RESULTS_URL,
     STORE_ADAPTERS_URL,
@@ -25,17 +26,7 @@ from .validation import validate_plugin
 class StoreTest:
     """商店测试"""
 
-    def __init__(
-        self,
-        offset: int = 0,
-        limit: int = 1,
-        force: bool = False,
-    ) -> None:
-        self._offset = offset
-        self._limit = limit
-        self._force = force
-
-        # NoneBot 仓库中的数据
+    def __init__(self) -> None:
         self._store_adapters = load_json(STORE_ADAPTERS_URL)
         self._store_bots = load_json(STORE_BOTS_URL)
         self._store_drivers = load_json(STORE_DRIVERS_URL)
@@ -43,134 +34,183 @@ class StoreTest:
             PLUGIN_KEY_TEMPLATE.format(
                 project_link=plugin["project_link"],
                 module_name=plugin["module_name"],
-            ): plugin
+            ): StorePlugin.model_construct(plugin)
             for plugin in load_json(STORE_PLUGINS_URL)
         }
+        # 插件配置文件
+        self._plugin_configs: dict[str, str] = load_json(REGISTRY_PLUGIN_CONFIG_URL)
         # 上次测试的结果
         self._previous_results: dict[str, TestResult] = load_json(REGISTRY_RESULTS_URL)
         self._previous_plugins: dict[str, Plugin] = {
             PLUGIN_KEY_TEMPLATE.format(
                 project_link=plugin["project_link"],
                 module_name=plugin["module_name"],
-            ): plugin
+            ): Plugin.model_construct(plugin)
             for plugin in load_json(REGISTRY_PLUGINS_URL)
         }
 
-    def should_skip(self, key: str) -> bool:
+    def should_skip(self, key: str, force: bool = False) -> bool:
         """是否跳过测试"""
         if key.startswith("git+http"):
             click.echo(f"插件 {key} 为 Git 插件，无法测试，已跳过")
             return True
 
         # 如果强制测试，则不跳过
-        if self._force:
+        if force:
             return False
 
         # 如果插件不在上次测试的结果中，则不跳过
-        previous_result = self._previous_results.get(key)
-        previous_plugin = self._previous_plugins.get(key)
+        previous_result: TestResult | None = self._previous_results.get(key)
+        previous_plugin: Plugin | None = self._previous_plugins.get(key)
         if not previous_result or not previous_plugin:
             return False
 
         # 如果插件为最新版本，则跳过测试
-        latest_version = get_latest_version(previous_plugin["project_link"])
-        if latest_version == previous_result["version"]:
+        latest_version = get_latest_version(previous_plugin.project_link)
+        if latest_version == previous_result.version:
             click.echo(f"插件 {key} 为最新版本（{latest_version}），跳过测试")
             return True
         return False
 
     def skip_plugin_test(self, key: str) -> bool:
-        """是否跳过插件测试"""
+        """是否跳过插件测试
+
+        Args:
+            key (str): 插件标识符
+        """
         if key in self._previous_plugins:
-            return self._previous_plugins[key].get("skip_test", False)
+            return self._previous_plugins[key].skip_test
         return False
 
     def read_plugin_config(self, key: str) -> str:
-        """读取插件配置"""
-        return self._previous_results.get(key, {}).get("inputs", {}).get("config", "")
+        """获取插件配置
+        优先从配置文件中获取，若不存在则从上次测试结果获取
 
-    async def test_plugins(
-        self,
-        key: str | None = None,
-        config: str | None = None,
-        data: str | None = None,
-    ):
-        """测试并更新插件商店中的插件信息"""
+        Args:
+            key (str): 插件标识符
+        """
+        if self._plugin_configs.get(key):
+            return self._plugin_configs[key]
+        elif self._previous_results.get(key):
+            return self._previous_results[key].config
+        return ""
+
+    async def test_plugin(
+        self, key: str, config: str | None = None, plugin_data: str | None = None
+    ) -> tuple[TestResult, Plugin | None]:
+        """测试插件
+
+        Args:
+            key (str): 插件标识符
+            config (str | None): 插件配置，若为 None 则从上次测试结果中获取
+            plugin_data (str | None): 插件数据，不为 None 时，直接使用该数据且跳过测试
+        """
+        plugin = self._store_plugins[key]
+        config = config or self.read_plugin_config(key)
+
+        new_result, new_plugin = await validate_plugin(
+            plugin=plugin,
+            config=config,
+            skip_test=self.skip_plugin_test(key),
+            plugin_data=plugin_data,
+            previous_plugin=self._previous_plugins.get(key),
+        )
+        return new_result, new_plugin
+
+    async def test_plugins(self, limit: int, force: bool):
+        """批量测试插件
+
+        Args:
+            limit (int): 至多有效测试插件数量
+            force (bool): 是否强制测试
+        """
         new_results: dict[str, TestResult] = {}
         new_plugins: dict[str, Plugin] = {}
-
-        if key:
-            test_plugins = [(key, self._store_plugins[key])]
-            # 优先使用传入的配置
-            plugin_configs = {key: config if config else self.read_plugin_config(key)}
-            plugin_datas = {key: data}
-        else:
-            test_plugins = list(self._store_plugins.items())[self._offset :]
-            plugin_configs = {
-                key: self.read_plugin_config(key) for key, _ in test_plugins
-            }
-            plugin_datas = {}
-
-        # 测试上限不可能超过插件总数
-        limit = min(self._limit, len(test_plugins))
-
         i = 1
-        for key, plugin in test_plugins:
+        test_plugins = list(self._store_plugins.keys())
+
+        for key in test_plugins:
             if i > limit:
                 click.echo(f"已达到测试上限 {limit}，测试停止")
                 break
 
-            try:
-                if self.should_skip(key):
-                    continue
+            # 是否需要跳过测试
+            if self.should_skip(key, force):
+                continue
 
-                click.echo(f"{i}/{limit} 正在测试插件 {key} ...")
-
-                new_results[key], new_plugin = await validate_plugin(
-                    plugin=plugin,
-                    config=plugin_configs.get(key, ""),
-                    skip_test=self.skip_plugin_test(key),
-                    data=plugin_datas.get(key),
-                    previous_plugin=self._previous_plugins.get(key),
-                )
+            async def worker():
+                new_result, new_plugin = await self.test_plugin(key)
+                new_results[key] = new_result
                 if new_plugin:
                     new_plugins[key] = new_plugin
+
+            try:
+                click.echo(f"{i}/{limit} 正在测试插件 {key} ...")
+                await worker()  # TODO: 修改为并行
+                i += 1
             except Exception as e:
-                # 如果测试中遇到意外错误，则跳过该插件
                 click.echo(e)
                 continue
 
-            i += 1
+        return new_results, new_plugins
 
+    async def merge_data(
+        self, new_results: dict[str, TestResult], new_plugins: dict[str, Plugin]
+    ):
+        """
+        合并新的插件测试数据与结果并储存到仓库中
+
+        Args:
+            new_results (dict[str, TestResult]): 新的插件测试结果
+            new_plugins (dict[str, Plugin]): 新的插件数据
+        """
         results: dict[str, TestResult] = {}
         plugins: dict[str, Plugin] = {}
-        # 按照插件列表顺序输出
+
         for key in self._store_plugins:
-            # 更新测试结果
-            # 如果新的测试结果中有，则使用新的测试结果
-            # 否则使用上次测试结果
             if key in new_results:
                 results[key] = new_results[key]
             elif key in self._previous_results:
                 results[key] = self._previous_results[key]
 
-            # 更新插件列表
             if key in new_plugins:
                 plugins[key] = new_plugins[key]
             elif key in self._previous_plugins:
                 plugins[key] = self._previous_plugins[key]
 
-        return results, plugins
-
-    async def run(
-        self, key: str | None = None, config: str | None = None, data: str | None = None
-    ):
-        """测试商店内插件情况"""
-        results, plugins = await self.test_plugins(key, config, data)
-
-        # 保存测试结果与生成的列表
         dump_json(ADAPTERS_PATH, self._store_adapters)
         dump_json(BOTS_PATH, self._store_bots)
         dump_json(DRIVERS_PATH, self._store_drivers)
         dump_json(PLUGINS_PATH, list(plugins.values()))
         dump_json(RESULTS_PATH, results)
+
+    async def run(self, limit: int, force: bool = False):
+        """运行商店测试
+
+        Args:
+            limit (int): 至多有效测试插件数量
+            force (bool): 是否强制测试，默认为 False
+        """
+        new_results, new_plugins = await self.test_plugins(limit, force)
+        await self.merge_data(new_results, new_plugins)
+
+    async def run_single_plugin(
+        self,
+        key: str,
+        force: bool = False,
+        plugin_data: str | None = None,
+        config: str | None = None,
+    ):
+        """
+        运行单次插件测试
+
+        Args:
+            key (str): 插件标识符
+            forece (bool): 是否强制测试，默认为 False
+        """
+        if self.should_skip(key, force):
+            return
+
+        new_result, new_plugin = await self.test_plugin(key, config, plugin_data)
+        if new_plugin:
+            await self.merge_data({key: new_result}, {key: new_plugin})

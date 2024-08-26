@@ -36,7 +36,6 @@ from .utils import (
     update_file,
     validate_adapter_info_from_issue,
     validate_bot_info_from_issue,
-    validate_info_from_issue,
     validate_plugin_info_from_issue,
 )
 
