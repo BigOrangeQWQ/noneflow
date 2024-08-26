@@ -17,7 +17,7 @@ from src.utils.validation import (
 from src.utils.constants import DOCKER_IMAGES
 from src.utils.docker_test import DockerPluginTest
 from src.utils.plugin_test import strip_ansi
-from utils.store_test.models import DockerTestResult, Metadata
+from src.utils.store_test.models import DockerTestResult, Metadata
 
 from .config import plugin_config
 from .constants import (
