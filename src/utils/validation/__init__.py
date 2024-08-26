@@ -31,8 +31,7 @@ def extract_publish_info_from_issue(
     """
     matchers = {key: pattern.search(body) for key, pattern in patterns.items()}
     data = {
-        key: match.group(1).strip() if match else None
-        for key, match in matchers.items()
+        key: match.group(1).strip() if match else "" for key, match in matchers.items()
     }
     return TypeAdapter(dict[str, str]).validate_python(data)
 

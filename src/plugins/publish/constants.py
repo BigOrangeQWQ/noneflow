@@ -84,4 +84,6 @@ LOC_NAME_MAP = {
     "homepage": "项目仓库/主页链接",
     "type": "插件类型",
     "supported_adapters": "插件支持的适配器",
+    "plugin_test_metadata": "插件测试元数据",
+    "plugin_test_load": "插件是否成功加载",
 }
