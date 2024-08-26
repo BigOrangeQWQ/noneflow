@@ -8,14 +8,11 @@ from pydantic import (
     Field,
     ValidationInfo,
     ValidatorFunctionWrapHandler,
-    field_serializer,
     field_validator,
     model_validator,
 )
 from pydantic_core import PydanticCustomError
-from pydantic_extra_types.color import Color
-
-from src.utils.store_test.models import Metadata
+from src.utils.store_test.models import Metadata, Tag
 
 
 from .constants import (
@@ -107,17 +104,6 @@ class PyPIMixin(BaseModel):
                 {"project_link": project_link, "module_name": module_name},
             )
         return values
-
-
-class Tag(BaseModel):
-    """标签"""
-
-    label: str = Field(max_length=10)
-    color: Color
-
-    @field_serializer("color")
-    def serializer_color(self, color: Color):
-        return color.as_hex()
 
 
 class PublishInfo(abc.ABC, BaseModel):

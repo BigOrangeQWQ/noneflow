@@ -2,9 +2,19 @@ from datetime import datetime
 from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
+from pydantic_extra_types.color import Color
 
-from src.utils.validation.models import Tag
+
+class Tag(BaseModel):
+    """标签"""
+
+    label: str = Field(max_length=10)
+    color: Color
+
+    @field_serializer("color")
+    def serializer_color(self, color: Color):
+        return color.as_hex()
 
 
 class StorePlugin(BaseModel):
