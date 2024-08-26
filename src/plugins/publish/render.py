@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 import jinja2
 
 from src.utils.validation.models import PublishType
+from src.utils.store_test.models import Tag
 
 from .config import plugin_config
 from .constants import LOC_NAME_MAP
@@ -12,9 +13,9 @@ if TYPE_CHECKING:
     from src.utils.validation import ValidationDict
 
 
-def tags_to_str(tags: list[dict]) -> str:
+def tags_to_str(tags: list[Tag]) -> str:
     """将标签列表转换为字符串"""
-    return ", ".join([f"{tag['label']}-{tag['color']}" for tag in tags])
+    return ", ".join([f"{tag.label}-{tag.color_hex}" for tag in tags])
 
 
 def supported_adapters_to_str(supported_adapters: list[str] | None) -> str:

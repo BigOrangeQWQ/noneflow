@@ -16,6 +16,10 @@ class Tag(BaseModel):
     def serializer_color(self, color: Color):
         return color.as_hex()
 
+    @property
+    def color_hex(self) -> str:
+        return self.color.as_hex()
+
 
 class StorePlugin(BaseModel):
     """NoneBot 仓库中的插件数据"""
