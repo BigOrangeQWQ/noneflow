@@ -159,9 +159,9 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
     """插件类型"""
     supported_adapters: list[str] | None
     """插件支持的适配器"""
-    plugin_test_load: bool
+    load: bool
     """"插件测试结果"""
-    plugin_test_metadata: Metadata | None
+    metadata: Metadata | None
     """插件测试元数据"""
 
     @field_validator("type", mode="before")
@@ -212,7 +212,7 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
             )
         return sorted(supported_adapters)
 
-    @field_validator("plugin_test_load", mode="before")
+    @field_validator("load", mode="before")
     @classmethod
     def plugin_test_load_validator(cls, v: bool, info: ValidationInfo) -> bool:
         context = info.context
@@ -226,7 +226,7 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
             {"plugin_test_output": context.get("plugin_test_output")},
         )
 
-    @field_validator("plugin_test_metadata", mode="before")
+    @field_validator("metadata", mode="before")
     @classmethod
     def plugin_test_metadata_validator(
         cls, v: Metadata | None, info: ValidationInfo

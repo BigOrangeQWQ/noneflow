@@ -199,7 +199,7 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
     logger.info(f"插件元数据: {plugin_test_metadata}")
     raw_data.update(
         {
-            "plugin_test_load": plugin_test_result.load,
+            "load": plugin_test_result.load,
             "result": plugin_test_result,
             "output": plugin_test_output,
             "metadata": plugin_test_metadata,
@@ -239,7 +239,7 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
 
     # 如果是插件，还需要额外验证插件加载测试结果
     if (
-        validate_data.data.get("plugin_test_metadata") is None
+        validate_data.data.get("metadata") is None
         and not plugin_config.skip_plugin_test
     ):
         # 如果没有跳过测试且缺少插件元数据，则跳过元数据相关的错误
