@@ -163,9 +163,7 @@ async def handle_publish_plugin_check(
     installation_id: int = Depends(get_installation_id),
     repo_info: RepoInfo = Depends(get_repo_info),
     issue_number: int = Depends(get_issue_number),
-    publish_type: Literal[PublishType.ADAPTER, PublishType.PLUGIN] = Depends(
-        get_type_by_labels
-    ),
+    publish_type: Literal[PublishType.PLUGIN] = Depends(get_type_by_labels),
 ) -> None:
     async with bot.as_installation(installation_id):
         # 因为 Actions 会排队，触发事件相关的议题在 Actions 执行时可能已经被关闭
@@ -249,9 +247,7 @@ async def handle_adapter_publish_check(
     installation_id: int = Depends(get_installation_id),
     repo_info: RepoInfo = Depends(get_repo_info),
     issue_number: int = Depends(get_issue_number),
-    publish_type: Literal[PublishType.BOT, PublishType.PLUGIN] = Depends(
-        get_type_by_labels
-    ),
+    publish_type: Literal[PublishType.ADAPTER] = Depends(get_type_by_labels),
 ) -> None:
     async with bot.as_installation(installation_id):
         # 因为 Actions 会排队，触发事件相关的议题在 Actions 执行时可能已经被关闭
@@ -326,9 +322,7 @@ async def handle_bot_publish_check(
     installation_id: int = Depends(get_installation_id),
     repo_info: RepoInfo = Depends(get_repo_info),
     issue_number: int = Depends(get_issue_number),
-    publish_type: Literal[PublishType.ADAPTER, PublishType.PLUGIN] = Depends(
-        get_type_by_labels
-    ),
+    publish_type: Literal[PublishType.BOT] = Depends(get_type_by_labels),
 ) -> None:
     async with bot.as_installation(installation_id):
         # 因为 Actions 会排队，触发事件相关的议题在 Actions 执行时可能已经被关闭
