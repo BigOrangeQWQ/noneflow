@@ -27,13 +27,12 @@ def extract_publish_info_from_issue(
 ) -> dict[str, str]:
     """
     根据提供的正则表达式和 Issue 内容提取信息
-    返回对应的正则表达式的信息项名字作为键，正则表达式的搜索结果作为值
     """
     matchers = {key: pattern.search(body) for key, pattern in patterns.items()}
     data = {
         key: match.group(1).strip() if match else "" for key, match in matchers.items()
     }
-    return TypeAdapter(dict[str, str]).validate_python(data)
+    return data
 
 
 def validate_info(

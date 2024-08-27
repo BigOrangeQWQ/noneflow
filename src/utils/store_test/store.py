@@ -34,7 +34,7 @@ class StoreTest:
             PLUGIN_KEY_TEMPLATE.format(
                 project_link=plugin["project_link"],
                 module_name=plugin["module_name"],
-            ): StorePlugin.model_construct(plugin)
+            ): StorePlugin.model_construct(**plugin)
             for plugin in load_json(STORE_PLUGINS_URL)
         }
         # 插件配置文件
@@ -45,7 +45,7 @@ class StoreTest:
             PLUGIN_KEY_TEMPLATE.format(
                 project_link=plugin["project_link"],
                 module_name=plugin["module_name"],
-            ): Plugin.model_construct(plugin)
+            ): Plugin.model_construct(**plugin)
             for plugin in load_json(REGISTRY_PLUGINS_URL)
         }
 
@@ -62,7 +62,7 @@ class StoreTest:
         # 如果插件不在上次测试的结果中，则不跳过
         previous_result: TestResult | None = self._previous_results.get(key)
         previous_plugin: Plugin | None = self._previous_plugins.get(key)
-        if not previous_result or not previous_plugin:
+        if previous_result is None or previous_plugin is None:
             return False
 
         # 如果插件为最新版本，则跳过测试
