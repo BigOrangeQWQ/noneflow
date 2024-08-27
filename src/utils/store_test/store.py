@@ -40,7 +40,10 @@ class StoreTest:
         # 插件配置文件
         self._plugin_configs: dict[str, str] = load_json(REGISTRY_PLUGIN_CONFIG_URL)
         # 上次测试的结果
-        self._previous_results: dict[str, TestResult] = load_json(REGISTRY_RESULTS_URL)
+        self._previous_results: dict[str, TestResult] = {
+            key: TestResult(**value)
+            for key, value in load_json(REGISTRY_RESULTS_URL).items()
+        }
         self._previous_plugins: dict[str, Plugin] = {
             PLUGIN_KEY_TEMPLATE.format(
                 project_link=plugin["project_link"],
