@@ -34,7 +34,7 @@ class StoreTest:
             PLUGIN_KEY_TEMPLATE.format(
                 project_link=plugin["project_link"],
                 module_name=plugin["module_name"],
-            ): StorePlugin.model_construct(**plugin)
+            ): StorePlugin(**plugin)
             for plugin in load_json(STORE_PLUGINS_URL)
         }
         # 插件配置文件
@@ -48,7 +48,7 @@ class StoreTest:
             PLUGIN_KEY_TEMPLATE.format(
                 project_link=plugin["project_link"],
                 module_name=plugin["module_name"],
-            ): Plugin.model_construct(**plugin)
+            ): Plugin(**plugin)
             for plugin in load_json(REGISTRY_PLUGINS_URL)
         }
 
