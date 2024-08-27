@@ -8,6 +8,7 @@ import click
 from src.utils.validation import PublishType, validate_info
 from src.utils.docker_test import DockerPluginTest
 from src.utils.constants import DOCKER_IMAGES
+from utils.validation.models import ValidationDict
 
 from .models import Metadata, Plugin, StorePlugin, TestResult
 from .utils import get_latest_version, get_upload_time
@@ -91,7 +92,7 @@ async def validate_plugin(
             raw_data.update(metadata.model_dump())
         elif skip_test and previous_plugin:
             raw_data.update(previous_plugin.metadata().model_dump())
-        validation_data = validate_info(PublishType.PLUGIN, raw_data)
+        validation_data: ValidationDict = validate_info(PublishType.PLUGIN, raw_data)
 
         new_data = {
             # 插件验证过程中无法获取是否是官方插件，因此需要从原始数据中获取
@@ -105,11 +106,11 @@ async def validate_plugin(
         if validation_data.valid:
             data = validation_data.data
             data.update(new_data)
-            new_plugin = Plugin.model_construct(**validation_data.data)
+            new_plugin = Plugin(**validation_data.data)
         elif previous_plugin:
             data = previous_plugin.model_dump()
             data.update(new_data)
-            new_plugin = Plugin.model_construct(**data)
+            new_plugin = Plugin(**data)
 
         else:
             new_plugin = None

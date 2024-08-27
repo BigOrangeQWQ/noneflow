@@ -12,8 +12,13 @@ class Tag(BaseModel):
     label: str = Field(max_length=10)
     color: Color
 
+    @field_validator("lable", mode="before")
+    @classmethod
+    def label_validator(cls, v: str):
+        return v.removeprefix("t:")
+
     @field_serializer("color")
-    def serializer_color(self, color: Color):
+    def color_serializer(self, color: Color):
         return color.as_hex()
 
     @property
@@ -69,6 +74,12 @@ class Plugin(BaseModel):
             supported_adapters=self.supported_adapters,
         )
 
+    @field_validator("tags", mode="before")
+    @classmethod
+    def tags_validator(cls, v: list[dict[str, Any]]):
+        """商店里的标签数据不需要验证，直接构造即可"""
+        return [Tag.model_construct(**tag) for tag in v]
+
 
 class TestResult(BaseModel):
     time: str = Field(
@@ -86,8 +97,8 @@ class DockerTestResult(BaseModel):
 
     run: bool  # 是否运行
     load: bool  # 是否加载成功
-    version: str | None
-    config: str
+    version: str | None = None
+    config: str = ""
     # 测试环境 python==3.10 pytest==6.2.5 nonebot2==2.0.0a1 ...
     test_env: str = Field(default="unknown")
     metadata: Metadata | None
