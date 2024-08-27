@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, field_serializer, field_validator
 from pydantic_extra_types.color import Color
 
 
@@ -92,3 +92,10 @@ class DockerTestResult(BaseModel):
     test_env: str = Field(default="unknown")
     metadata: Metadata | None
     outputs: list[str]
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def metadata_validator(cls, v: Any):
+        if v:
+            return v
+        return None
