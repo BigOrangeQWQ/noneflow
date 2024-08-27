@@ -12,7 +12,7 @@ class Tag(BaseModel):
     label: str = Field(max_length=10)
     color: Color
 
-    @field_validator("lable", mode="before")
+    @field_validator("label", mode="before")
     @classmethod
     def label_validator(cls, v: str):
         return v.removeprefix("t:")
