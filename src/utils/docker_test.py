@@ -49,4 +49,4 @@ class DockerPluginTest:
 
         data = json.loads(output)
         data["test_env"] = f"python=={version}"
-        return DockerTestResult.model_construct(**data)
+        return DockerTestResult(**data)

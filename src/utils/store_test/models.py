@@ -38,7 +38,7 @@ class Metadata(BaseModel):
     # 元数据序列化时使用 desc 字段，符合 Plugin 的描述字段名 desc
     description: str = Field(serialization_alias="desc")
     homepage: str
-    type: Literal["library", "application"]
+    type: str | None = None
     supported_adapters: list[str] | None = None
 
 

@@ -55,14 +55,12 @@ async def validate_plugin(
         new_plugin["skip_test"] = True
         new_plugin = Plugin(**new_plugin)
 
-        metadata: Metadata | None = Metadata.model_construct(
-            **{
-                "name": new_plugin.name,
-                "description": new_plugin.desc,
-                "homepage": new_plugin.homepage,
-                "type": new_plugin.type,
-                "supported_adapters": new_plugin.supported_adapters,
-            }
+        metadata: Metadata | None = Metadata(
+            name=new_plugin.name,
+            description=new_plugin.desc,
+            homepage=new_plugin.homepage,
+            type=new_plugin.type,
+            supported_adapters=new_plugin.supported_adapters,
         )
     else:
         test_result = await DockerPluginTest(
@@ -126,7 +124,7 @@ async def validate_plugin(
             }
         )
 
-    result: TestResult = TestResult(
+    result = TestResult(
         version=test_version,
         results={
             "validation": validation_result,
