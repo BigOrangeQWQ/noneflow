@@ -69,7 +69,11 @@ class StoreTest:
             return False
 
         # 如果插件为最新版本，则跳过测试
-        latest_version = get_latest_version(previous_plugin.project_link)
+        try:
+            latest_version = get_latest_version(previous_plugin.project_link)
+        except ValueError as e:
+            click.echo(f"插件 {key} 获取最新版本失败：{e}，跳过测试")
+            return False
         if latest_version == previous_result.version:
             click.echo(f"插件 {key} 为最新版本（{latest_version}），跳过测试")
             return True
