@@ -147,13 +147,13 @@ class StoreTest:
                 if new_plugin:
                     new_plugins[key] = new_plugin
 
-            # try:
-            click.echo(f"{i}/{limit} 正在测试插件 {key} ...")
-            await worker()  # TODO: 修改为并行
-            i += 1
-            # except Exception as e:
-            #     click.echo(e)
-            #     continue
+            try:
+                click.echo(f"{i}/{limit} 正在测试插件 {key} ...")
+                await worker()  # TODO: 修改为并行
+                i += 1
+            except Exception as e:
+                click.echo(e)
+                continue
 
         return new_results, new_plugins
 

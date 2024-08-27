@@ -1,3 +1,4 @@
+import abc
 from datetime import datetime
 from typing import Any, Literal
 from zoneinfo import ZoneInfo
@@ -26,14 +27,8 @@ class Tag(BaseModel):
         return self.color.as_hex()
 
 
-class StorePlugin(BaseModel):
-    """NoneBot 仓库中的插件数据"""
-
-    module_name: str
-    project_link: str
-    author: str
+class TagModel(BaseModel):
     tags: list[Tag]
-    is_official: bool
 
     @field_validator("tags", mode="before")
     @classmethod
@@ -42,6 +37,16 @@ class StorePlugin(BaseModel):
             Tag.model_construct(label=tag["label"], color=Color(tag["color"]))
             for tag in v
         ]
+
+
+class StorePlugin(TagModel):
+    """NoneBot 仓库中的插件数据"""
+
+    module_name: str
+    project_link: str
+    author: str
+    tags: list[Tag]
+    is_official: bool
 
 
 class Metadata(BaseModel):
@@ -55,7 +60,7 @@ class Metadata(BaseModel):
     supported_adapters: list[str] | None = None
 
 
-class Plugin(BaseModel):
+class Plugin(TagModel):
     """NoneBot 商店插件数据"""
 
     module_name: str
@@ -81,14 +86,6 @@ class Plugin(BaseModel):
             type=self.type,
             supported_adapters=self.supported_adapters,
         )
-
-    @field_validator("tags", mode="before")
-    @classmethod
-    def tags_validator(cls, v: list[dict[str, Any]]):
-        return [
-            Tag.model_construct(label=tag["label"], color=Color(tag["color"]))
-            for tag in v
-        ]
 
 
 class TestResult(BaseModel):
