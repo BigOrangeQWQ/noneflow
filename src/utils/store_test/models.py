@@ -38,8 +38,10 @@ class StorePlugin(BaseModel):
     @field_validator("tags", mode="before")
     @classmethod
     def tags_validator(cls, v: list[dict[str, Any]]):
-        """商店里的标签数据不需要验证，直接构造即可"""
-        return [Tag.model_construct(**tag) for tag in v]
+        return [
+            Tag.model_construct(label=tag["label"], color=Color(tag["color"]))
+            for tag in v
+        ]
 
 
 class Metadata(BaseModel):
@@ -83,8 +85,10 @@ class Plugin(BaseModel):
     @field_validator("tags", mode="before")
     @classmethod
     def tags_validator(cls, v: list[dict[str, Any]]):
-        """商店里的标签数据不需要验证，直接构造即可"""
-        return [Tag.model_construct(**tag) for tag in v]
+        return [
+            Tag.model_construct(label=tag["label"], color=Color(tag["color"]))
+            for tag in v
+        ]
 
 
 class TestResult(BaseModel):
