@@ -8,11 +8,9 @@ from pydantic import (
     Field,
     ValidationInfo,
     ValidatorFunctionWrapHandler,
-    field_serializer,
     field_validator,
     model_validator,
 )
-from pydantic_extra_types.color import Color
 from pydantic_core import PydanticCustomError
 from src.utils.store_test.models import Metadata, Tag
 

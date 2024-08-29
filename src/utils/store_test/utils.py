@@ -2,11 +2,14 @@ import json
 from functools import cache
 from pathlib import Path
 from typing import Any
+from collections.abc import Mapping
 
 import httpx
+from pydantic import BaseModel
+from pydantic_core import to_jsonable_python
 
 
-def load_json(url: str):
+def load_json(url: str) -> Any:
     """从网络加载 JSON 文件"""
     r = httpx.get(url)
     if r.status_code != 200:
@@ -14,13 +17,15 @@ def load_json(url: str):
     return r.json()
 
 
-def dump_json(path: Path, data: dict | list):
+def dump_json(path: Path, data: Mapping[str, BaseModel] | list[BaseModel]):
     """保存 JSON 文件
 
     为减少文件大小，还需手动设置 separators
     """
     with open(path, "w", encoding="utf8") as f:
-        json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+        json.dump(
+            to_jsonable_python(data), f, ensure_ascii=False, separators=(",", ":")
+        )
 
 
 @cache
