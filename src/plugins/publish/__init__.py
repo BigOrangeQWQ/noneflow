@@ -179,7 +179,7 @@ async def handle_publish_plugin_check(
         if issue.state != "open":
             logger.info("议题未开启，已跳过")
             await publish_check_matcher.finish()
-        if should_skip_plugin_publish(issue):
+        if await should_skip_plugin_publish(issue):
             logger.info("测试按钮已勾选，跳过插件发布检查")
 
         # 是否需要跳过插件测试
