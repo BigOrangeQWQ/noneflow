@@ -548,7 +548,7 @@ async def ensure_issue_test_button(
     """确保议题内容中包含插件重测按钮"""
     search_result = PLUGIN_TEST_BUTTON_PATTERN.search(issue_body)
     if not search_result:
-        new_content = f"{PLUGIN_TEST_STRING}\n\n{PLUGIN_TEST_BUTTON_STRING}"
+        new_content = f"{ISSUE_FIELD_TEMPLATE.format(PLUGIN_TEST_STRING)}\n\n{PLUGIN_TEST_BUTTON_STRING}"
         await bot.rest.issues.async_update(
             **repo_info.model_dump(),
             issue_number=issue_number,

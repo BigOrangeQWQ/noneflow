@@ -55,7 +55,15 @@ async def render_comment(result: "ValidationDict", reuse: bool = False) -> str:
     title = f"{result.type}: {result.name}"
 
     # 有些数据不需要显示
-    remove_keys = ["is_official", "module_name", "name", "desc", "author"]
+    remove_keys = [
+        "is_official",
+        "module_name",
+        "name",
+        "desc",
+        "author",
+        "metadata",
+        "load",
+    ]
     [result.data.pop(key, None) for key in remove_keys]
     if not result.data.get("tags", []):
         result.data.pop("tags", None)
