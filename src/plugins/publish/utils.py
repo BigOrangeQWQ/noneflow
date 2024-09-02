@@ -554,9 +554,17 @@ async def ensure_issue_test_button(
             issue_number=issue_number,
             body=f"{issue_body}\n\n{new_content}",
         )
-        logger.info("为议题添加插件测试按钮。")
-    else:
-        logger.info("议题内容中已包含插件测试按钮。")
+        logger.info("议题没有插件测试按钮，已添加")
+    elif search_result.group(1) == " ":
+        new_content = issue_body.replace(
+            search_result.group(0), PLUGIN_TEST_BUTTON_STRING
+        )
+        await bot.rest.issues.async_update(
+            **repo_info.model_dump(),
+            issue_number=issue_number,
+            body=new_content,
+        )
+        logger.info("议题中插件测试按钮未选中，已更新")
 
 
 async def should_skip_plugin_publish(
