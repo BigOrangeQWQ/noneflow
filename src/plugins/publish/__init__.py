@@ -234,12 +234,12 @@ async def handle_publish_plugin_check(
         # 修改议题标题
         # 需要等创建完拉取请求并打上标签后执行
         # 不然会因为修改议题触发 Actions 导致标签没有正常打上
+        await ensure_issue_test_button(bot, repo_info, issue_number, issue.body or "")
         if issue.title != title:
             await bot.rest.issues.async_update(
                 **repo_info.model_dump(), issue_number=issue_number, title=title
             )
             logger.info(f"议题标题已修改为 {title}")
-        await ensure_issue_test_button(bot, repo_info, issue_number, issue.body or "")
         await comment_issue(bot, repo_info, issue_number, result)
 
 

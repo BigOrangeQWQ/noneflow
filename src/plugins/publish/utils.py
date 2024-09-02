@@ -555,6 +555,8 @@ async def ensure_issue_test_button(
             body=f"{issue_body}\n\n{new_content}",
         )
         logger.info("为议题添加插件测试按钮。")
+    else:
+        logger.info("议题内容中已包含插件测试按钮。")
 
 
 async def should_skip_plugin_publish(
