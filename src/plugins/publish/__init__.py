@@ -181,6 +181,7 @@ async def handle_publish_plugin_check(
             await publish_check_matcher.finish()
         if await should_skip_plugin_publish(issue):
             logger.info("测试按钮已勾选，跳过插件发布检查")
+            await publish_check_matcher.finish()
 
         # 是否需要跳过插件测试
         plugin_config.skip_plugin_test = await should_skip_plugin_test(
