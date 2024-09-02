@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 import jinja2
 
 from src.utils.validation.models import PublishType
-from src.utils.store_test.models import Tag
 
 from .config import plugin_config
 from .constants import LOC_NAME_MAP

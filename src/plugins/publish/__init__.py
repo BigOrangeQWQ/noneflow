@@ -29,8 +29,10 @@ from .utils import (
     commit_and_push,
     create_pull_request,
     ensure_issue_content,
+    ensure_issue_test_button,
     resolve_conflict_pull_requests,
     run_shell_command,
+    should_skip_plugin_publish,
     should_skip_plugin_test,
     trigger_registry_update,
     update_file,
@@ -177,6 +179,8 @@ async def handle_publish_plugin_check(
         if issue.state != "open":
             logger.info("议题未开启，已跳过")
             await publish_check_matcher.finish()
+        if should_skip_plugin_publish(issue):
+            logger.info("测试按钮已勾选，跳过插件发布检查")
 
         # 是否需要跳过插件测试
         plugin_config.skip_plugin_test = await should_skip_plugin_test(
@@ -235,7 +239,7 @@ async def handle_publish_plugin_check(
                 **repo_info.model_dump(), issue_number=issue_number, title=title
             )
             logger.info(f"议题标题已修改为 {title}")
-
+        await ensure_issue_test_button(bot, repo_info, issue_number, issue.body or "")
         await comment_issue(bot, repo_info, issue_number, result)
 
 

@@ -40,6 +40,9 @@ from .constants import (
     PLUGIN_NAME_PATTERN,
     PLUGIN_STRING_LIST,
     PLUGIN_SUPPORTED_ADAPTERS_PATTERN,
+    PLUGIN_TEST_BUTTON_STRING,
+    PLUGIN_TEST_BUTTON_PATTERN,
+    PLUGIN_TEST_STRING,
     PLUGIN_TYPE_PATTERN,
     PROJECT_LINK_PATTERN,
     SKIP_PLUGIN_TEST_COMMENT,
@@ -537,6 +540,32 @@ async def ensure_issue_content(
             body="\n\n".join(new_content),
         )
         logger.info("检测到议题内容缺失，已更新")
+
+
+async def ensure_issue_test_button(
+    bot: Bot, repo_info: RepoInfo, issue_number: int, issue_body: str
+):
+    """确保议题内容中包含插件重测按钮"""
+    search_result = PLUGIN_TEST_BUTTON_PATTERN.search(issue_body)
+    if not search_result:
+        new_content = f"{PLUGIN_TEST_STRING}\n\n{PLUGIN_TEST_BUTTON_STRING}"
+        await bot.rest.issues.async_update(
+            **repo_info.model_dump(),
+            issue_number=issue_number,
+            body=f"{issue_body}\n\n{new_content}",
+        )
+        logger.info("为议题添加插件测试按钮。")
+
+
+async def should_skip_plugin_publish(
+    issue: "Issue",
+) -> bool:
+    """判断是否跳过插件测试"""
+    body = issue.body if issue.body else ""
+    search_result = PLUGIN_TEST_BUTTON_PATTERN.search(body)
+    if search_result:
+        return search_result.group(1) == "x"
+    return False
 
 
 async def trigger_registry_update(
