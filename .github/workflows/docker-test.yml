@@ -5,7 +5,7 @@ on:
     paths:
       - './docker/**'
 
-job:
+jobs:
   plugin-test-docker:
     name: Docker
     runs-on: ubuntu-latest

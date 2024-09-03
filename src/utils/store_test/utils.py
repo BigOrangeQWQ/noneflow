@@ -1,4 +1,5 @@
 import json
+
 from functools import cache
 from pathlib import Path
 from typing import Any
@@ -51,3 +52,9 @@ def get_upload_time(project_link: str) -> str:
     """获取插件的上传时间"""
     data = get_pypi_data(project_link)
     return data["urls"][0]["upload_time_iso_8601"]
+
+
+def get_user_id(name: str) -> int:
+    """获取用户信息"""
+    data = load_json(f"https://api.github.com/users/{name}")
+    return data["id"]

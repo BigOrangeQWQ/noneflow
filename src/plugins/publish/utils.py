@@ -2,51 +2,33 @@ import asyncio
 import json
 import re
 import subprocess
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from githubkit.exception import RequestFailed
 from githubkit.typing import Missing
 from nonebot import logger
 from nonebot.adapters.github import Bot, GitHubBot
 
+from .validation import validate_plugin_info_from_issue
 from src.utils.validation import (
     PublishType,
     ValidationDict,
-    extract_publish_info_from_issue,
-    validate_info,
 )
-from src.utils.constants import DOCKER_IMAGES
-from src.utils.docker_test import DockerPluginTest
-from src.utils.plugin_test import strip_ansi
-from src.utils.store_test.models import DockerTestResult, Metadata
 
 from .config import plugin_config
 from .constants import (
-    ADAPTER_DESC_PATTERN,
-    ADAPTER_HOMEPAGE_PATTERN,
-    ADAPTER_MODULE_NAME_PATTERN,
-    ADAPTER_NAME_PATTERN,
-    BOT_DESC_PATTERN,
-    BOT_HOMEPAGE_PATTERN,
-    BOT_NAME_PATTERN,
     BRANCH_NAME_PREFIX,
     COMMIT_MESSAGE_PREFIX,
     ISSUE_FIELD_PATTERN,
     ISSUE_FIELD_TEMPLATE,
     NONEFLOW_MARKER,
     PLUGIN_CONFIG_PATTERN,
-    PLUGIN_DESC_PATTERN,
-    PLUGIN_HOMEPAGE_PATTERN,
     PLUGIN_MODULE_NAME_PATTERN,
-    PLUGIN_NAME_PATTERN,
     PLUGIN_STRING_LIST,
-    PLUGIN_SUPPORTED_ADAPTERS_PATTERN,
     PLUGIN_TEST_BUTTON_STRING,
     PLUGIN_TEST_BUTTON_PATTERN,
     PLUGIN_TEST_STRING,
-    PLUGIN_TYPE_PATTERN,
     PROJECT_LINK_PATTERN,
     SKIP_PLUGIN_TEST_COMMENT,
-    TAGS_PATTERN,
 )
 from .models import RepoInfo
 from .render import render_comment
@@ -170,134 +152,6 @@ def extract_name_from_title(title: str, publish_type: PublishType) -> str | None
     match = re.search(rf"{publish_type.value}: (.+)", title)
     if match:
         return match.group(1)
-
-
-async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
-    """从议题中提取插件信息"""
-    body: str = issue.body if issue.body else ""
-    author: str | None = issue.user.login if issue.user else ""
-    raw_data: dict[str, Any] = extract_publish_info_from_issue(
-        {
-            "module_name": PLUGIN_MODULE_NAME_PATTERN,
-            "project_link": PROJECT_LINK_PATTERN,
-            "test_config": PLUGIN_CONFIG_PATTERN,
-            "tags": TAGS_PATTERN,
-        },
-        body,
-    )
-    test_config: str = raw_data["test_config"]
-    module_name: str = raw_data["module_name"]
-    project_link: str = raw_data["project_link"]
-
-    with plugin_config.input_config.plugin_path.open("r", encoding="utf-8") as f:
-        previous_data: list[dict[str, str]] = json.load(f)
-
-    plugin_test_result: DockerTestResult = await DockerPluginTest(
-        DOCKER_IMAGES, project_link, module_name, test_config
-    ).run("3.10")
-    plugin_test_metadata: Metadata | None = plugin_test_result.metadata
-    plugin_test_output: str = strip_ansi("".join(plugin_test_result.outputs))
-
-    logger.info(f"插件测试结果: {plugin_test_result}")
-    logger.info(f"插件元数据: {plugin_test_metadata}")
-    raw_data.update(
-        {
-            "load": plugin_test_result.load,
-            "result": plugin_test_result,
-            "output": plugin_test_output,
-            "metadata": plugin_test_metadata,
-            "previous_data": previous_data,
-            "author": author,
-        }
-    )
-    # 如果插件测试被跳过，则从议题中获取信息
-    if plugin_config.skip_plugin_test:
-        plugin_info = extract_publish_info_from_issue(
-            {
-                "name": PLUGIN_NAME_PATTERN,
-                "desc": PLUGIN_DESC_PATTERN,
-                "homepage": PLUGIN_HOMEPAGE_PATTERN,
-                "type": PLUGIN_TYPE_PATTERN,
-                "supported_adapters": PLUGIN_SUPPORTED_ADAPTERS_PATTERN,
-            },
-            body,
-        )
-        raw_data.update(plugin_info)
-    elif plugin_test_metadata:
-        raw_data.update(plugin_test_metadata)
-        raw_data["desc"] = raw_data.get("description")
-    else:
-        # 插件缺少元数据
-        # 可能为插件测试未通过，或者插件未按规范编写
-        raw_data["name"] = project_link
-
-    # 如果升级至 pydantic 2 后，可以使用 validation-context
-    validation_context = {
-        "previous_data": raw_data.get("previous_data"),
-        "skip_plugin_test": raw_data.get("skip_plugin_test"),
-        "plugin_test_output": raw_data.get("plugin_test_output"),
-    }
-
-    validate_data = validate_info(PublishType.PLUGIN, raw_data, validation_context)
-
-    # 如果是插件，还需要额外验证插件加载测试结果
-    if (
-        validate_data.data.get("metadata") is None
-        and not plugin_config.skip_plugin_test
-    ):
-        # 如果没有跳过测试且缺少插件元数据，则跳过元数据相关的错误
-        # 因为这个时候这些项都会报错，错误在此时没有意义
-        metadata_keys = ["name", "desc", "homepage", "type", "supported_adapters"]
-        validate_data.errors = [
-            error
-            for error in validate_data.errors
-            if error["loc"][0] not in metadata_keys
-        ]
-        # 元数据缺失时，需要删除元数据相关的字段
-        for key in metadata_keys:
-            validate_data.data.pop(key, None)
-
-    return validate_data
-
-
-async def validate_bot_info_from_issue(issue: "Issue") -> ValidationDict:
-    body = issue.body if issue.body else ""
-    author = issue.user.login if issue.user else ""
-
-    raw_data: dict[str, str] = extract_publish_info_from_issue(
-        {
-            "name": BOT_NAME_PATTERN,
-            "desc": BOT_DESC_PATTERN,
-            "homepage": BOT_HOMEPAGE_PATTERN,
-            "tags": TAGS_PATTERN,
-        },
-        body,
-    )
-    raw_data["author"] = author
-
-    return validate_info(PublishType.BOT, raw_data)
-
-
-async def validate_adapter_info_from_issue(issue: "Issue") -> ValidationDict:
-    body = issue.body if issue.body else ""
-    author = issue.user.login if issue.user else ""
-    raw_data: dict[str, Any] = extract_publish_info_from_issue(
-        {
-            "module_name": ADAPTER_MODULE_NAME_PATTERN,
-            "project_link": PROJECT_LINK_PATTERN,
-            "name": ADAPTER_NAME_PATTERN,
-            "desc": ADAPTER_DESC_PATTERN,
-            "homepage": ADAPTER_HOMEPAGE_PATTERN,
-            "tags": TAGS_PATTERN,
-        },
-        body,
-    )
-    with plugin_config.input_config.adapter_path.open("r", encoding="utf-8") as f:
-        previous_data: list[dict[str, str]] = json.load(f)
-    raw_data["author"] = author
-    raw_data["previous_data"] = previous_data
-
-    return validate_info(PublishType.ADAPTER, raw_data)
 
 
 async def resolve_conflict_pull_requests(
@@ -454,6 +308,7 @@ async def create_pull_request(
             head=branch_name,
         )
         pull = resp.parsed_data
+
         # 自动给拉取请求添加标签
         await bot.rest.issues.async_add_labels(
             **repo_info.model_dump(),
@@ -576,6 +431,57 @@ async def should_skip_plugin_publish(
     if search_result:
         return search_result.group(1) == "x"
     return False
+
+
+async def process_pr_and_issue_title(
+    bot: Bot,
+    repo_info: RepoInfo,
+    result: ValidationDict,
+    branch_name: str,
+    issue_number: int,
+    title: str,
+    issue: "Issue",
+):
+    """
+    根据发布信息合法性创建拉取请求或将请求改为草稿，并修改议题标题
+    """
+    if result.valid:
+        run_shell_command(["git", "switch", "-C", branch_name])
+        # 更新文件并提交更改
+        update_file(result)
+        commit_and_push(result, branch_name, issue_number)
+        # 创建拉取请求
+        await create_pull_request(
+            bot, repo_info, result, branch_name, issue_number, title
+        )
+    else:
+        # 如果之前已经创建了拉取请求，则将其转换为草稿
+        pulls = (
+            await bot.rest.pulls.async_list(
+                **repo_info.model_dump(), head=f"{repo_info.owner}:{branch_name}"
+            )
+        ).parsed_data
+        if pulls and (pull := pulls[0]) and not pull.draft:
+            await bot.async_graphql(
+                query="""mutation convertPullRequestToDraft($pullRequestId: ID!) {
+                    convertPullRequestToDraft(input: {pullRequestId: $pullRequestId}) {
+                        clientMutationId
+                    }
+                }""",
+                variables={"pullRequestId": pull.node_id},
+            )
+            logger.info("发布没通过检查，已将之前的拉取请求转换为草稿")
+        else:
+            logger.info("发布没通过检查，暂不创建拉取请求")
+
+    # 修改议题标题
+    # 需要等创建完拉取请求并打上标签后执行
+    # 不然会因为修改议题触发 Actions 导致标签没有正常打上
+    if issue.title != title:
+        await bot.rest.issues.async_update(
+            **repo_info.model_dump(), issue_number=issue_number, title=title
+        )
+        logger.info(f"议题标题已修改为 {title}")
 
 
 async def trigger_registry_update(

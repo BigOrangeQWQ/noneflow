@@ -25,6 +25,7 @@ from .depends import (
 )
 from .models import RepoInfo
 from .utils import (
+    process_pr_and_issue_title,
     comment_issue,
     commit_and_push,
     create_pull_request,
@@ -36,6 +37,8 @@ from .utils import (
     should_skip_plugin_test,
     trigger_registry_update,
     update_file,
+)
+from .validation import (
     validate_adapter_info_from_issue,
     validate_bot_info_from_issue,
     validate_plugin_info_from_issue,
@@ -202,45 +205,15 @@ async def handle_publish_plugin_check(
 
         # 分支命名示例 publish/issue123
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
-        if result.valid:
-            # 创建新分支
-            run_shell_command(["git", "switch", "-C", branch_name])
-            # 更新文件并提交更改
-            update_file(result)
-            commit_and_push(result, branch_name, issue_number)
-            # 创建拉取请求
-            await create_pull_request(
-                bot, repo_info, result, branch_name, issue_number, title
-            )
-        else:
-            # 如果之前已经创建了拉取请求，则将其转换为草稿
-            pulls = (
-                await bot.rest.pulls.async_list(
-                    **repo_info.model_dump(), head=f"{repo_info.owner}:{branch_name}"
-                )
-            ).parsed_data
-            if pulls and (pull := pulls[0]) and not pull.draft:
-                await bot.async_graphql(
-                    query="""mutation convertPullRequestToDraft($pullRequestId: ID!) {
-                        convertPullRequestToDraft(input: {pullRequestId: $pullRequestId}) {
-                            clientMutationId
-                        }
-                    }""",
-                    variables={"pullRequestId": pull.node_id},
-                )
-                logger.info("发布没通过检查，已将之前的拉取请求转换为草稿")
-            else:
-                logger.info("发布没通过检查，暂不创建拉取请求")
+
+        await process_pr_and_issue_title(
+            bot, repo_info, result, branch_name, issue_number, title, issue
+        )
 
         # 修改议题标题
         # 需要等创建完拉取请求并打上标签后执行
         # 不然会因为修改议题触发 Actions 导致标签没有正常打上
         await ensure_issue_test_button(bot, repo_info, issue_number, issue.body or "")
-        if issue.title != title:
-            await bot.rest.issues.async_update(
-                **repo_info.model_dump(), issue_number=issue_number, title=title
-            )
-            logger.info(f"议题标题已修改为 {title}")
         await comment_issue(bot, repo_info, issue_number, result)
 
 
@@ -277,44 +250,10 @@ async def handle_adapter_publish_check(
 
         # 分支命名示例 publish/issue123
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
-        if result.valid:
-            # 创建新分支
-            run_shell_command(["git", "switch", "-C", branch_name])
-            # 更新文件并提交更改
-            update_file(result)
-            commit_and_push(result, branch_name, issue_number)
-            # 创建拉取请求
-            await create_pull_request(
-                bot, repo_info, result, branch_name, issue_number, title
-            )
-        else:
-            # 如果之前已经创建了拉取请求，则将其转换为草稿
-            pulls = (
-                await bot.rest.pulls.async_list(
-                    **repo_info.model_dump(), head=f"{repo_info.owner}:{branch_name}"
-                )
-            ).parsed_data
-            if pulls and (pull := pulls[0]) and not pull.draft:
-                await bot.async_graphql(
-                    query="""mutation convertPullRequestToDraft($pullRequestId: ID!) {
-                        convertPullRequestToDraft(input: {pullRequestId: $pullRequestId}) {
-                            clientMutationId
-                        }
-                    }""",
-                    variables={"pullRequestId": pull.node_id},
-                )
-                logger.info("发布没通过检查，已将之前的拉取请求转换为草稿")
-            else:
-                logger.info("发布没通过检查，暂不创建拉取请求")
 
-        # 修改议题标题
-        # 需要等创建完拉取请求并打上标签后执行
-        # 不然会因为修改议题触发 Actions 导致标签没有正常打上
-        if issue.title != title:
-            await bot.rest.issues.async_update(
-                **repo_info.model_dump(), issue_number=issue_number, title=title
-            )
-            logger.info(f"议题标题已修改为 {title}")
+        await process_pr_and_issue_title(
+            bot, repo_info, result, branch_name, issue_number, title, issue
+        )
 
         await comment_issue(bot, repo_info, issue_number, result)
 
@@ -352,44 +291,10 @@ async def handle_bot_publish_check(
 
         # 分支命名示例 publish/issue123
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
-        if result.valid:
-            # 创建新分支
-            run_shell_command(["git", "switch", "-C", branch_name])
-            # 更新文件并提交更改
-            update_file(result)
-            commit_and_push(result, branch_name, issue_number)
-            # 创建拉取请求
-            await create_pull_request(
-                bot, repo_info, result, branch_name, issue_number, title
-            )
-        else:
-            # 如果之前已经创建了拉取请求，则将其转换为草稿
-            pulls = (
-                await bot.rest.pulls.async_list(
-                    **repo_info.model_dump(), head=f"{repo_info.owner}:{branch_name}"
-                )
-            ).parsed_data
-            if pulls and (pull := pulls[0]) and not pull.draft:
-                await bot.async_graphql(
-                    query="""mutation convertPullRequestToDraft($pullRequestId: ID!) {
-                        convertPullRequestToDraft(input: {pullRequestId: $pullRequestId}) {
-                            clientMutationId
-                        }
-                    }""",
-                    variables={"pullRequestId": pull.node_id},
-                )
-                logger.info("发布没通过检查，已将之前的拉取请求转换为草稿")
-            else:
-                logger.info("发布没通过检查，暂不创建拉取请求")
 
-        # 修改议题标题
-        # 需要等创建完拉取请求并打上标签后执行
-        # 不然会因为修改议题触发 Actions 导致标签没有正常打上
-        if issue.title != title:
-            await bot.rest.issues.async_update(
-                **repo_info.model_dump(), issue_number=issue_number, title=title
-            )
-            logger.info(f"议题标题已修改为 {title}")
+        await process_pr_and_issue_title(
+            bot, repo_info, result, branch_name, issue_number, title, issue
+        )
 
         await comment_issue(bot, repo_info, issue_number, result)
 
