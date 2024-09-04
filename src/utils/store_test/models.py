@@ -67,6 +67,7 @@ class Plugin(TagModel):
     name: str
     desc: str
     author: str
+    author_id: int | None = None
     homepage: str
     tags: list[Tag]
     is_official: bool

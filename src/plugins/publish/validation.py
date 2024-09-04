@@ -47,11 +47,10 @@ def strip_ansi(text: str | None) -> str:
 
 async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
     """从议题中提取插件信息"""
-    body: str = issue.body if issue.body else ""
-    author: str | None = issue.user.login if issue.user else ""
+    body = issue.body if issue.body else ""
+    author = issue.user.id if issue.user else ""
+    author_id = issue.user.id if issue.user else None
 
-    if issue.user:
-        logger.info("Issue用户信息：" + str(issue.user.model_dump()))
     raw_data: dict[str, Any] = extract_publish_info_from_issue(
         {
             "module_name": PLUGIN_MODULE_NAME_PATTERN,
@@ -84,6 +83,7 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
             "metadata": plugin_test_metadata,
             "previous_data": previous_data,
             "author": author,
+            "author_id": author_id,
         }
     )
     # 如果插件测试被跳过，则从议题中获取信息
@@ -139,8 +139,8 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
 async def validate_bot_info_from_issue(issue: "Issue") -> ValidationDict:
     body = issue.body if issue.body else ""
     author = issue.user.login if issue.user else ""
-
-    raw_data: dict[str, str] = extract_publish_info_from_issue(
+    author_id = issue.user.id if issue.user else None
+    raw_data: dict[str, Any] = extract_publish_info_from_issue(
         {
             "name": BOT_NAME_PATTERN,
             "desc": BOT_DESC_PATTERN,
@@ -150,6 +150,7 @@ async def validate_bot_info_from_issue(issue: "Issue") -> ValidationDict:
         body,
     )
     raw_data["author"] = author
+    raw_data["author_id"] = author_id
 
     return validate_info(PublishType.BOT, raw_data)
 
@@ -157,6 +158,7 @@ async def validate_bot_info_from_issue(issue: "Issue") -> ValidationDict:
 async def validate_adapter_info_from_issue(issue: "Issue") -> ValidationDict:
     body = issue.body if issue.body else ""
     author = issue.user.login if issue.user else ""
+    author_id = issue.user.id if issue.user else None
     raw_data: dict[str, Any] = extract_publish_info_from_issue(
         {
             "module_name": ADAPTER_MODULE_NAME_PATTERN,
@@ -171,6 +173,7 @@ async def validate_adapter_info_from_issue(issue: "Issue") -> ValidationDict:
     with plugin_config.input_config.adapter_path.open("r", encoding="utf-8") as f:
         previous_data: list[dict[str, str]] = json.load(f)
     raw_data["author"] = author
+    raw_data["author_id"] = author_id
     raw_data["previous_data"] = previous_data
 
     return validate_info(PublishType.ADAPTER, raw_data)

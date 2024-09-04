@@ -3,10 +3,8 @@ import json
 from functools import cache
 from pathlib import Path
 from typing import Any
-from collections.abc import Mapping
 
 import httpx
-from pydantic import BaseModel
 from pydantic_core import to_jsonable_python
 
 
@@ -18,7 +16,7 @@ def load_json(url: str) -> Any:
     return r.json()
 
 
-def dump_json(path: Path, data: Mapping[str, BaseModel] | list[BaseModel]):
+def dump_json(path: Path, data: Any):
     """保存 JSON 文件
 
     为减少文件大小，还需手动设置 separators

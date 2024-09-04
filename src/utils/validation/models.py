@@ -118,6 +118,7 @@ class PublishInfo(abc.ABC, BaseModel):
     name: str = Field(max_length=NAME_MAX_LENGTH)
     desc: str
     author: str
+    author_id: int
     homepage: str
     tags: list[Tag] = Field(max_length=3)
     is_official: bool = Field(default=False)

@@ -14,6 +14,7 @@ from .constants import (
     ADAPTERS_PATH,
     BOTS_PATH,
     DRIVERS_PATH,
+    PLUGIN_CONFIG_PATH,
     PLUGIN_KEY_TEMPLATE,
     PLUGINS_PATH,
     RESULTS_PATH,
@@ -113,7 +114,11 @@ class StoreTest:
             plugin_data (str | None): 插件数据，不为 None 时，直接使用该数据且跳过测试
         """
         plugin = self._store_plugins[key]
-        config = config or self.read_plugin_config(key)
+
+        # 假设传入了 config， 则需要更新 plugin_config 文件
+        if config:
+            self._plugin_configs[key] = config
+        config = self.read_plugin_config(key)
 
         new_result, new_plugin = await validate_plugin(
             plugin=plugin,
@@ -173,7 +178,6 @@ class StoreTest:
         """
         results: dict[str, TestResult] = {}
         plugins: dict[str, Plugin] = {}
-
         for key in self._store_plugins:
             if key in new_results:
                 results[key] = new_results[key]
@@ -209,7 +213,7 @@ class StoreTest:
         config: str | None = None,
     ):
         """
-        运行单次插件测试
+        运行单次插件测试，来自 trigger_registry_update
 
         Args:
             key (str): 插件标识符
