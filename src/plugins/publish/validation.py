@@ -136,26 +136,8 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
     return validate_data
 
 
-async def validate_bot_info_from_issue(issue: "Issue") -> ValidationDict:
-    body = issue.body if issue.body else ""
-    author = issue.user.login if issue.user else ""
-    author_id = issue.user.id if issue.user else None
-    raw_data: dict[str, Any] = extract_publish_info_from_issue(
-        {
-            "name": BOT_NAME_PATTERN,
-            "desc": BOT_DESC_PATTERN,
-            "homepage": BOT_HOMEPAGE_PATTERN,
-            "tags": TAGS_PATTERN,
-        },
-        body,
-    )
-    raw_data["author"] = author
-    raw_data["author_id"] = author_id
-
-    return validate_info(PublishType.BOT, raw_data)
-
-
 async def validate_adapter_info_from_issue(issue: "Issue") -> ValidationDict:
+    """从议题中提取适配器信息"""
     body = issue.body if issue.body else ""
     author = issue.user.login if issue.user else ""
     author_id = issue.user.id if issue.user else None
@@ -177,3 +159,23 @@ async def validate_adapter_info_from_issue(issue: "Issue") -> ValidationDict:
     raw_data["previous_data"] = previous_data
 
     return validate_info(PublishType.ADAPTER, raw_data)
+
+
+async def validate_bot_info_from_issue(issue: "Issue") -> ValidationDict:
+    """从议题中提取机器人信息"""
+    body = issue.body if issue.body else ""
+    author = issue.user.login if issue.user else ""
+    author_id = issue.user.id if issue.user else None
+    raw_data: dict[str, Any] = extract_publish_info_from_issue(
+        {
+            "name": BOT_NAME_PATTERN,
+            "desc": BOT_DESC_PATTERN,
+            "homepage": BOT_HOMEPAGE_PATTERN,
+            "tags": TAGS_PATTERN,
+        },
+        body,
+    )
+    raw_data["author"] = author
+    raw_data["author_id"] = author_id
+
+    return validate_info(PublishType.BOT, raw_data)

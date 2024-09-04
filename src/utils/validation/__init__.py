@@ -26,7 +26,7 @@ def extract_publish_info_from_issue(
     patterns: dict[str, Pattern[str]], body: str
 ) -> dict[str, str]:
     """
-    根据提供的正则表达式和 Issue 内容提取信息
+    根据提供的正则表达式和议题内容来提取所需的信息
     """
     matchers = {key: pattern.search(body) for key, pattern in patterns.items()}
     data = {
