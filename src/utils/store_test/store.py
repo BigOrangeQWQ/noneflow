@@ -194,6 +194,7 @@ class StoreTest:
         dump_json(DRIVERS_PATH, self._store_drivers)
         dump_json(PLUGINS_PATH, list(plugins.values()))
         dump_json(RESULTS_PATH, results)
+        dump_json(PLUGIN_CONFIG_PATH, self._plugin_configs)
 
     async def run(self, limit: int, force: bool = False):
         """运行商店测试

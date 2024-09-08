@@ -27,8 +27,6 @@ from .models import RepoInfo
 from .utils import (
     process_pr_and_issue_title,
     comment_issue,
-    commit_and_push,
-    create_pull_request,
     ensure_issue_content,
     ensure_issue_test_button,
     resolve_conflict_pull_requests,
@@ -36,7 +34,6 @@ from .utils import (
     should_skip_plugin_publish,
     should_skip_plugin_test,
     trigger_registry_update,
-    update_file,
 )
 from .validation import (
     validate_adapter_info_from_issue,
@@ -206,6 +203,7 @@ async def handle_publish_plugin_check(
         # 分支命名示例 publish/issue123
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
 
+        # 验证之后创建拉取请求和修改议题的标题
         await process_pr_and_issue_title(
             bot, repo_info, result, branch_name, issue_number, title, issue
         )
@@ -251,6 +249,7 @@ async def handle_adapter_publish_check(
         # 分支命名示例 publish/issue123
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
 
+        # 验证之后创建拉取请求和修改议题的标题
         await process_pr_and_issue_title(
             bot, repo_info, result, branch_name, issue_number, title, issue
         )
@@ -292,6 +291,7 @@ async def handle_bot_publish_check(
         # 分支命名示例 publish/issue123
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
 
+        # 验证之后创建拉取请求和修改议题的标题
         await process_pr_and_issue_title(
             bot, repo_info, result, branch_name, issue_number, title, issue
         )

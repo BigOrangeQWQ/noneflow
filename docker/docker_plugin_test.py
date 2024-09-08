@@ -251,8 +251,10 @@ class PluginTest:
         # 创建插件测试项目
         await self.create_poetry_project()
         if self._create:
-            await self.show_package_info()
-            await self.show_plugin_dependencies()
+            await asyncio.gather(
+                self.show_package_info(),
+                self.show_plugin_dependencies(),
+            )
             await self.run_poetry_project()
 
         metadata = {}
@@ -278,8 +280,14 @@ class PluginTest:
         return self._run, self._lines_output
 
     async def command(self, cmd: str, timeout: int = 300) -> tuple[bool, str, str]:
-        """
-        执行命令
+        """执行命令
+
+        Args:
+            cmd (str): 命令
+            timeout (int, optional): 超时限制. Defaults to 300.
+
+        Returns:
+            tuple[bool, str, str]: 命令执行返回值，标准输出，标准错误
         """
         try:
             proc = await create_subprocess_shell(
@@ -299,6 +307,7 @@ class PluginTest:
         return not code, stdout.decode(), stderr.decode()
 
     async def create_poetry_project(self):
+        """创建 poetry 项目用来测试插件"""
         if not self.path.exists():
             self.path.mkdir()
 
@@ -321,6 +330,7 @@ class PluginTest:
             self._create = True
 
     async def show_package_info(self) -> None:
+        """获取插件的版本与插件信息"""
         if self.path.exists():
             code, stdout, stderr = await self.command(
                 f"poetry show {self.project_link}"
@@ -337,6 +347,7 @@ class PluginTest:
                 self._log_output(f"插件 {self.project_link} 信息获取失败。")
 
     async def run_poetry_project(self) -> None:
+        """运行插件"""
         if self.path.exists():
             # 默认使用 fake 驱动
             with open(self.path / ".env", "w", encoding="utf8") as f:
@@ -377,6 +388,7 @@ class PluginTest:
                 self._log_output(f"    {i}")
 
     async def show_plugin_dependencies(self) -> None:
+        """获取插件的依赖"""
         if self.path.exists():
             code, stdout, stderr = await self.command("poetry export --without-hashes")
 
@@ -414,9 +426,15 @@ class PluginTest:
 
 
 def main():
-    plugin = PluginTest(
-        os.environ.get("PLUGIN_INFO", ""), os.environ.get("PLUGIN_CONFIG", None)
-    )
+    """
+    根据传入的环境变量 PLUGIN_INFO 和 PLUGIN_CONFIG 进行测试
+
+    PLUGIN_INFO 即为该插件的键
+    """
+
+    plugin_info = os.environ.get("PLUGIN_INFO", "")
+    plugin_config = os.environ.get("PLUGIN_CONFIG", None)
+    plugin = PluginTest(plugin_info, plugin_config)
 
     asyncio.run(plugin.run())
 

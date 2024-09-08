@@ -241,7 +241,8 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
         context = info.context
         if context is None:
             raise PydanticCustomError("validation_context", "未获取到验证上下文")
-
+        if v is None:
+            raise PydanticCustomError("plugin.metadata", "插件缺少元数据")
         if context.get("skip_plugin_test"):
             return None
         return v

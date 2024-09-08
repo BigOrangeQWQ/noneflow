@@ -510,7 +510,7 @@ async def trigger_registry_update(
 
             client_payload = {
                 "type": publish_type.value,
-                "key": f"{result.data['project_link']}:{result.data['module_name']}",
+                "key": f"{result.data["project_link"]}:{result.data["module_name"]}",
                 "config": config.group(1) if config else "",
                 "data": json.dumps(result.data),
             }

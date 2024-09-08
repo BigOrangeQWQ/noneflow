@@ -46,11 +46,12 @@ def strip_ansi(text: str | None) -> str:
 
 
 async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
-    """从议题中提取插件信息"""
+    """从议题中获取插件信息，并且运行插件测试加载且获取插件元信息后进行验证"""
     body = issue.body if issue.body else ""
     author = issue.user.id if issue.user else ""
     author_id = issue.user.id if issue.user else None
 
+    # 从议题里提取插件所需信息
     raw_data: dict[str, Any] = extract_publish_info_from_issue(
         {
             "module_name": PLUGIN_MODULE_NAME_PATTERN,
@@ -67,6 +68,10 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
     with plugin_config.input_config.plugin_path.open("r", encoding="utf-8") as f:
         previous_data: list[dict[str, str]] = json.load(f)
 
+    raw_data["author"] = author
+    raw_data["author_id"] = author_id
+
+    # 运行插件测试，获取插件测试输出与元信息
     plugin_test_result: DockerTestResult = await DockerPluginTest(
         DOCKER_IMAGES, project_link, module_name, test_config
     ).run("3.10")
@@ -82,11 +87,10 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
             "output": plugin_test_output,
             "metadata": plugin_test_metadata,
             "previous_data": previous_data,
-            "author": author,
-            "author_id": author_id,
         }
     )
-    # 如果插件测试被跳过，则从议题中获取信息
+
+    # 如果插件被跳过，则从议题获取插件信息
     if plugin_config.skip_plugin_test:
         plugin_info = extract_publish_info_from_issue(
             {
@@ -100,23 +104,23 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
         )
         raw_data.update(plugin_info)
     elif plugin_test_metadata:
-        raw_data.update(plugin_test_metadata)
-        raw_data["desc"] = raw_data.get("description")
+        # 发布信息更新插件元数据
+        raw_data.update(plugin_test_metadata.model_dump())
     else:
         # 插件缺少元数据
         # 可能为插件测试未通过，或者插件未按规范编写
         raw_data["name"] = project_link
 
-    # 如果升级至 pydantic 2 后，可以使用 validation-context
+    # 传入的验证插件信息的上下文
     validation_context = {
         "previous_data": raw_data.get("previous_data"),
         "skip_plugin_test": raw_data.get("skip_plugin_test"),
         "plugin_test_output": raw_data.get("plugin_test_output"),
     }
 
+    # 验证插件相关信息
     validate_data = validate_info(PublishType.PLUGIN, raw_data, validation_context)
 
-    # 如果是插件，还需要额外验证插件加载测试结果
     if (
         validate_data.data.get("metadata") is None
         and not plugin_config.skip_plugin_test

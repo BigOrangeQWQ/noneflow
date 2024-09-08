@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import jinja2
 
@@ -7,9 +6,7 @@ from src.utils.validation.models import PublishType
 
 from .config import plugin_config
 from .constants import LOC_NAME_MAP
-
-if TYPE_CHECKING:
-    from src.utils.validation import ValidationDict
+from src.utils.validation import ValidationDict
 
 
 def tags_to_str(tags: list[dict[str, str]]) -> str:
@@ -50,7 +47,7 @@ env.filters["supported_adapters_to_str"] = supported_adapters_to_str
 env.filters["loc_to_name"] = loc_to_name
 
 
-async def render_comment(result: "ValidationDict", reuse: bool = False) -> str:
+async def render_comment(result: ValidationDict, reuse: bool = False) -> str:
     """将验证结果转换为评论内容"""
     title = f"{result.type}: {result.name}"
 

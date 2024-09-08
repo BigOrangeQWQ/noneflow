@@ -1,5 +1,5 @@
 import re
-from typing_extensions import LiteralString
+from typing import LiteralString
 
 # PyPI 格式
 PYPI_PACKAGE_NAME_PATTERN = re.compile(
