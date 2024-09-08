@@ -40,7 +40,7 @@
     {{ error.msg }}<dt>请确保没有重复发布。</dt>
 {% elif type == "plugin.test" %}
     插件加载测试未通过。{{ detail_message("测试输出", ctx.output) }}
-{% elif type == "metadata" %}
+{% elif type == "plugin.metadata" %}
     无法获取到插件元数据。<dt>{{ "请填写插件元数据" if ctx.plugin_test_result else "请确保插件正常加载" }}。</dt>
 {% elif type == "plugin.type" %}
     插件类型 {{ input }} 不符合规范。<dt>请确保插件类型正确，当前仅支持 application 与 library。</dt>

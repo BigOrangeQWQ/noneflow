@@ -133,6 +133,8 @@ class PublishInfo(abc.ABC, BaseModel):
             raise PydanticCustomError("validation_context", "未获取到验证上下文")
 
         result = handler(v)
+        if isinstance(result, BaseModel):
+            result = result.model_dump()
         context["valid_data"][info.field_name] = result
         return result
 
@@ -168,7 +170,7 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
     """插件支持的适配器"""
     load: bool
     """"插件测试结果"""
-    metadata: Metadata | None
+    metadata: Metadata
     """插件测试元数据"""
 
     @field_validator("type", mode="before")
@@ -236,15 +238,13 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
     @field_validator("metadata", mode="before")
     @classmethod
     def plugin_test_metadata_validator(
-        cls, v: Metadata | None, info: ValidationInfo
-    ) -> Metadata | None:
+        cls, v: Metadata, info: ValidationInfo
+    ) -> Metadata:
         context = info.context
         if context is None:
             raise PydanticCustomError("validation_context", "未获取到验证上下文")
         if v is None:
             raise PydanticCustomError("plugin.metadata", "插件缺少元数据")
-        if context.get("skip_plugin_test"):
-            return None
         return v
 
 
