@@ -7,11 +7,11 @@
 {% endmacro %}
 
 {% macro render_error(error) %}
-{% set loc = error.loc %}
-{% set type = error.type %}
-{% set ctx = error.ctx %} 
-{% set name = loc|loc_to_name %}
-{% set input = error.input %}
+{%- set loc = error.loc %}
+{%- set type = error.type %}
+{%- set ctx = error.ctx %} 
+{%- set name = loc|loc_to_name %}
+{%- set input = error.input %}
 {%- if loc|length == 3 and loc[0] == "tags" %}
 {%- if type == "missing" %}
 {{ render_tag_error(loc[1], "缺少第" ~ loc[2] ~ " 字段", "请确保标签字段完整。") }}
