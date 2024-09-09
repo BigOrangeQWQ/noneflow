@@ -52,9 +52,12 @@ class ValidationDict(BaseModel):
     data: dict[str, Any]
     errors: list[ErrorDetails]
 
-    @field_validator("data")
+    @field_validator("data", mode="before")
     @classmethod
     def data_validator(cls, v: dict[str, Any] | BaseModel) -> dict[str, Any]:
+        """
+        保证 data 数据是一个字典，而非 Model 实例
+        """
         if isinstance(v, BaseModel):
             return v.model_dump()
         elif isinstance(v, dict):
@@ -138,8 +141,6 @@ class PublishInfo(abc.ABC, BaseModel):
             raise PydanticCustomError("validation_context", "未获取到验证上下文")
 
         result = handler(v)
-        if isinstance(result, BaseModel):
-            result = result.model_dump()
         context["valid_data"][info.field_name] = result
         return result
 
@@ -173,7 +174,7 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
     """插件类型"""
     supported_adapters: list[str] | None
     """插件支持的适配器"""
-    load: bool
+    load: bool = False
     """"插件测试结果"""
     metadata: Metadata
     """插件测试元数据"""
@@ -232,6 +233,8 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
         context = info.context
         if context is None:
             raise PydanticCustomError("validation_context", "未获取到验证上下文")
+
+        context["load"] = v  # 提供给元数据验证器使用
         if v or context.get("skip_plugin_test"):
             return True
         raise PydanticCustomError(
@@ -253,7 +256,7 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
                 "plugin.metadata",
                 "插件缺少元数据",
                 {
-                    "plugin_test_result": context.get("load"),
+                    "plugin_test_result": context.get("load", True),
                 },
             )
         return v

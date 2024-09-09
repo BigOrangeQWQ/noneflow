@@ -134,7 +134,6 @@ async def check_rule(
     event: IssuesOpened | IssuesReopened | IssuesEdited | IssueCommentCreated,
     publish_type: PublishType | None = Depends(get_type_by_labels),
 ) -> bool:
-    logger.info(f"评论来自: {event.model_dump()}")
     if (
         isinstance(event, IssueCommentCreated)
         and event.payload.comment.user
@@ -144,10 +143,10 @@ async def check_rule(
         return False
     if (
         isinstance(event, IssuesEdited)
-        and event.payload.sender.name
-        and event.payload.sender.name.endswith(BOT_MARKER)
+        and event.payload.sender.login
+        and event.payload.sender.login.endswith(BOT_MARKER)
     ):
-        logger.info("修改来自机器人，已跳过")
+        logger.info("议题修改来自机器人，已跳过")
     if event.payload.issue.pull_request:
         logger.info("评论在拉取请求下，已跳过")
         return False
