@@ -11,7 +11,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from pydantic_core import PydanticCustomError
+from pydantic_core import PydanticCustomError, to_jsonable_python
 from src.utils.store_test.models import Metadata, Tag
 
 from .constants import (
@@ -56,16 +56,9 @@ class ValidationDict(BaseModel):
     @classmethod
     def data_validator(cls, v: dict[str, Any] | BaseModel) -> dict[str, Any]:
         """
-        保证 data 数据是一个字典，而非 Model 实例
+        序列化 data 字段
         """
-        if isinstance(v, BaseModel):
-            return v.model_dump()
-        elif isinstance(v, dict):
-            return {
-                key: value.model_dump() if isinstance(value, BaseModel) else value
-                for key, value in v.items()
-            }
-        return v
+        return to_jsonable_python(v)
 
 
 class PyPIMixin(BaseModel):
