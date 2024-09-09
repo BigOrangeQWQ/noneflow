@@ -1,12 +1,12 @@
-{% macro render_tag_error(index, message, dt_message) %}
+{%- macro render_tag_error(index, message, dt_message) %}
 第 {{ index + 1 }} 个标签{{ message }}。<dt>请确保标签{{ dt_message }}。</dt>
-{% endmacro %}
+{%- endmacro %}
 
-{% macro detail_message(summary, detail) %}
+{%- macro detail_message(summary, detail) %}
 <details><summary>{{ summary }}</summary>{{ detail }}</details>
-{% endmacro %}
+{%- endmacro %}
 
-{% macro render_error(error) %}
+{%- macro render_error(error) %}
 {%- set loc = error.loc %}
 {%- set type = error.type %}
 {%- set ctx = error.ctx %} 
