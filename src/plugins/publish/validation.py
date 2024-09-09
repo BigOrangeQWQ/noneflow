@@ -76,7 +76,7 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
         DOCKER_IMAGES, project_link, module_name, test_config
     ).run("3.10")
     plugin_test_metadata: Metadata | None = plugin_test_result.metadata
-    plugin_test_output: str = strip_ansi("".join(plugin_test_result.outputs))
+    plugin_test_output: str = strip_ansi("\n".join(plugin_test_result.outputs))
 
     logger.info(f"插件测试结果: {plugin_test_result}")
     logger.info(f"插件元数据: {plugin_test_metadata}")
