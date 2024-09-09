@@ -238,13 +238,19 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
     @field_validator("metadata", mode="before")
     @classmethod
     def plugin_test_metadata_validator(
-        cls, v: Metadata, info: ValidationInfo
+        cls, v: Metadata | None, info: ValidationInfo
     ) -> Metadata:
         context = info.context
         if context is None:
             raise PydanticCustomError("validation_context", "未获取到验证上下文")
         if v is None:
-            raise PydanticCustomError("plugin.metadata", "插件缺少元数据")
+            raise PydanticCustomError(
+                "plugin.metadata",
+                "插件缺少元数据",
+                {
+                    "plugin_test_result": context.get("load"),
+                },
+            )
         return v
 
 
