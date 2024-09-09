@@ -48,7 +48,7 @@ def strip_ansi(text: str | None) -> str:
 async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
     """从议题中获取插件信息，并且运行插件测试加载且获取插件元信息后进行验证"""
     body = issue.body if issue.body else ""
-    author = issue.user.id if issue.user else ""
+    author = issue.user.login if issue.user else ""
     author_id = issue.user.id if issue.user else None
 
     # 从议题里提取插件所需信息

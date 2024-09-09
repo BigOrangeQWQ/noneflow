@@ -57,6 +57,11 @@ class ValidationDict(BaseModel):
     def data_validator(cls, v: dict[str, Any] | BaseModel) -> dict[str, Any]:
         if isinstance(v, BaseModel):
             return v.model_dump()
+        elif isinstance(v, dict):
+            return {
+                key: value.model_dump() if isinstance(value, BaseModel) else value
+                for key, value in v.items()
+            }
         return v
 
 
