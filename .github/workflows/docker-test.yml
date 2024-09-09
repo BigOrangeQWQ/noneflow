@@ -1,12 +1,13 @@
-name: Plugin Test Contain Builder
+name: Plugin Test Container Builder
 
 on: 
   push:
     paths:
-      - './docker/**'
-
+      - '/docker/**'
+  workflow_dispatch:
+    
 jobs:
-  plugin-test-docker:
+  build:
     name: Docker
     runs-on: ubuntu-latest
     strategy:
