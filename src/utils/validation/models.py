@@ -233,7 +233,7 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
         raise PydanticCustomError(
             "plugin.test",
             "插件无法正常加载",
-            {"plugin_test_output": context.get("plugin_test_output")},
+            {"output": context.get("plugin_test_output")},
         )
 
     @field_validator("metadata", mode="before")
@@ -249,7 +249,7 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
                 "plugin.metadata",
                 "插件缺少元数据",
                 {
-                    "plugin_test_result": context.get("load", True),
+                    "load": context.get("load", True),
                 },
             )
         return v
