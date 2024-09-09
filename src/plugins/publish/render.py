@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import jinja2
+from nonebot import logger
 
 from src.utils.validation.models import PublishType
 
@@ -64,6 +65,7 @@ async def render_comment(result: ValidationDict, reuse: bool = False) -> str:
     [result.data.pop(key, None) for key in remove_keys]
     if not result.data.get("tags", []):
         result.data.pop("tags", None)
+    logger.info(result)
 
     if result.type == PublishType.PLUGIN:
         # https://github.com/he0119/action-test/actions/runs/4469672520

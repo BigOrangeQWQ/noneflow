@@ -134,7 +134,7 @@ async def check_rule(
     event: IssuesOpened | IssuesReopened | IssuesEdited | IssueCommentCreated,
     publish_type: PublishType | None = Depends(get_type_by_labels),
 ) -> bool:
-    logger.info(f"评论来自: {event.payload.sender.name}")
+    logger.info(f"评论来自: {event.payload.model_dump()}")
     if (
         isinstance(event, IssueCommentCreated)
         and event.payload.comment.user
