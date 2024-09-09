@@ -2,6 +2,7 @@
 
 from re import Pattern
 from typing import Any
+from nonebot import logger
 from pydantic import TypeAdapter, ValidationError
 from pydantic_core import ErrorDetails
 
@@ -66,11 +67,11 @@ def validate_info(
     except ValidationError as exc:
         errors = exc.errors()
         data: dict[str, Any] = validation_context["valid_data"]
-
+    logger.info(data)
     # 翻译错误
     errors = translate_errors(errors)
 
-    return ValidationDict(
+    validation_data = ValidationDict(
         valid=not errors,
         data=data,
         errors=errors,  # 方便插件使用的数据
@@ -78,3 +79,5 @@ def validate_info(
         name=data.get("name") or raw_data.get("name", ""),
         author=data.get("author", ""),
     )
+    logger.info(validation_data)
+    return validation_data
