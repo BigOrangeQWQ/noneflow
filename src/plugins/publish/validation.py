@@ -83,8 +83,6 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
     raw_data.update(
         {
             "load": plugin_test_result.load,
-            "result": plugin_test_result,
-            "output": plugin_test_output,
             "metadata": plugin_test_metadata,
             "previous_data": previous_data,
         }
@@ -115,7 +113,7 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
     validation_context = {
         "previous_data": raw_data.get("previous_data"),
         "skip_plugin_test": raw_data.get("skip_plugin_test"),
-        "plugin_test_output": raw_data.get("plugin_test_output"),
+        "plugin_test_output": plugin_test_output,
     }
 
     # 验证插件相关信息
