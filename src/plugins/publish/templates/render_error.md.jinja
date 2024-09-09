@@ -1,5 +1,5 @@
 {%- macro render_tag_error(index, message, dt_message) %}
-第 {{ index + 1 }} 个标签{{ message }}。<dt>请确保标签{{ dt_message }}</dt>
+第 {{ index + 1 }} 个标签{{ message }}。<dt>{{ dt_message }}</dt>
 {%- endmacro %}
 
 {%- macro detail_message(summary, detail) %}
