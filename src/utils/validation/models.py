@@ -6,6 +6,7 @@ from typing import Any
 from pydantic import (
     BaseModel,
     Field,
+    ValidationError,
     ValidationInfo,
     ValidatorFunctionWrapHandler,
     field_validator,
@@ -245,13 +246,17 @@ class PluginPublishInfo(PublishInfo, PyPIMixin):
         if context is None:
             raise PydanticCustomError("validation_context", "未获取到验证上下文")
         if v is None:
-            raise PydanticCustomError(
-                "plugin.metadata",
-                "插件缺少元数据",
-                {
-                    "load": context.get("load", True),
-                },
-            )
+            # 如果没有传入插件元数据，尝试从上下文中获取
+            try:
+                return Metadata(**context["valid_data"])
+            except ValidationError as err:
+                raise PydanticCustomError(
+                    "plugin.metadata",
+                    "插件无法获取到元数据",
+                    {
+                        "load": context.get("load", True),
+                    },
+                )
         return v
 
 

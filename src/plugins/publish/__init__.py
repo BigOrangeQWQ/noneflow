@@ -194,14 +194,15 @@ async def handle_publish_plugin_check(
         plugin_config.skip_plugin_test = await should_skip_plugin_test(
             bot, repo_info, issue_number
         )
-
         # 如果需要跳过插件测试，则修改议题内容，确保其包含插件所需信息
         if plugin_config.skip_plugin_test:
             await ensure_issue_content(bot, repo_info, issue_number, issue.body or "")
 
         # 检查是否满足发布要求
         # 仅在通过检查的情况下创建拉取请求
-        result = await validate_plugin_info_from_issue(issue)
+        result = await validate_plugin_info_from_issue(
+            issue, plugin_config.skip_plugin_test
+        )
 
         # 设置拉取请求与议题的标题
         # 限制标题长度，过长的标题不好看

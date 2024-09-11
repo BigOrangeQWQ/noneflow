@@ -7,8 +7,6 @@
 项目 <a href="https://pypi.org/project/{{ value }}/">{{ value }}</a> 已发布至 PyPI。
 {%- elif key == "type" %}
 插件类型: {{ value }}。
-{%- elif key == "load" %}
-插件加载测试: {{ value }}。
 {%- elif key == "supported_adapters" %}
 插件支持的适配器: {{ value|supported_adapters_to_str }}。
 {%- elif key == "action_url" %}

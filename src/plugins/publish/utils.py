@@ -502,7 +502,9 @@ async def trigger_registry_update(
                 "w", encoding="utf-8"
             ) as f:
                 json.dump([], f)
-            result = await validate_plugin_info_from_issue(issue)
+            result = await validate_plugin_info_from_issue(
+                issue, plugin_config.skip_plugin_test
+            )
             logger.debug(f"插件信息验证结果: {result}")
             if not result.valid:
                 logger.error("插件信息验证失败，跳过触发商店列表更新")

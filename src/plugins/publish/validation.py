@@ -45,11 +45,21 @@ def strip_ansi(text: str | None) -> str:
     return ansi_escape.sub("", text)
 
 
-async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
+def extract_author_info(issue: "Issue") -> dict[str, Any]:
+    """
+    从议题中获取作者信息
+    """
+    return {
+        "author": issue.user.login if issue.user else "",
+        "author_id": issue.user.id if issue.user else None,
+    }
+
+
+async def validate_plugin_info_from_issue(
+    issue: "Issue", skip_plugin_test: bool
+) -> ValidationDict:
     """从议题中获取插件信息，并且运行插件测试加载且获取插件元信息后进行验证"""
     body = issue.body if issue.body else ""
-    author = issue.user.login if issue.user else ""
-    author_id = issue.user.id if issue.user else None
 
     # 从议题里提取插件所需信息
     raw_data: dict[str, Any] = extract_publish_info_from_issue(
@@ -61,6 +71,8 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
         },
         body,
     )
+    raw_data.update(extract_author_info(issue))
+
     test_config: str = raw_data["test_config"]
     module_name: str = raw_data["module_name"]
     project_link: str = raw_data["project_link"]
@@ -68,27 +80,14 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
     with plugin_config.input_config.plugin_path.open("r", encoding="utf-8") as f:
         previous_data: list[dict[str, str]] = json.load(f)
 
-    raw_data["author"] = author
-    raw_data["author_id"] = author_id
-
-    # 运行插件测试，获取插件测试输出与元信息
-    plugin_test_result: DockerTestResult = await DockerPluginTest(
-        DOCKER_IMAGES, project_link, module_name, test_config
-    ).run("3.10")
-    plugin_test_metadata: Metadata | None = plugin_test_result.metadata
-    plugin_test_output: str = strip_ansi("\n".join(plugin_test_result.outputs))
-
-    logger.info(f"插件测试结果: {plugin_test_result}")
-    logger.info(f"插件元数据: {plugin_test_metadata}")
-    raw_data.update(
-        {
-            "load": plugin_test_result.load,
-            "metadata": plugin_test_metadata,
-            "previous_data": previous_data,
-        }
-    )
+    # 插件字段默认值
+    raw_data["name"] = project_link
+    raw_data["metadata"] = None
 
     # 如果插件被跳过，则从议题获取插件信息
+
+    plugin_test_output: str = "插件未进行测试"
+
     if plugin_config.skip_plugin_test:
         plugin_info = extract_publish_info_from_issue(
             {
@@ -101,18 +100,35 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
             body,
         )
         raw_data.update(plugin_info)
-    elif plugin_test_metadata:
-        # 发布信息更新插件元数据
-        raw_data.update(plugin_test_metadata.model_dump())
+        logger.info(f"插件已跳过测试，从议题中获取的插件元信息：{plugin_info}")
     else:
-        # 插件缺少元数据
-        # 可能为插件测试未通过，或者插件未按规范编写
-        raw_data["name"] = project_link
+        # 插件不跳过则运行插件测试
+        plugin_test_result: DockerTestResult = await DockerPluginTest(
+            DOCKER_IMAGES, project_link, module_name, test_config
+        ).run("3.10")
+        plugin_metadata: Metadata | None = plugin_test_result.metadata
+        plugin_test_output = strip_ansi("\n".join(plugin_test_result.outputs))
+
+        logger.info(f"插件测试结果: {plugin_test_result}")
+        logger.info(f"插件元数据: {plugin_metadata}")
+        raw_data.update(
+            {
+                "load": plugin_test_result.load,
+                "metadata": plugin_metadata,
+            }
+        )
+        if plugin_metadata:
+            # 从插件测试结果中获得元数据
+            raw_data.update(plugin_metadata.model_dump())
+        else:
+            # 插件缺少元数据
+            # 可能为插件测试未通过，或者插件未按规范编写
+            raw_data["name"] = project_link
 
     # 传入的验证插件信息的上下文
     validation_context = {
-        "previous_data": raw_data.get("previous_data"),
-        "skip_plugin_test": raw_data.get("skip_plugin_test"),
+        "previous_data": previous_data,
+        "skip_plugin_test": skip_plugin_test,
         "plugin_test_output": plugin_test_output,
     }
 
@@ -141,8 +157,6 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
 async def validate_adapter_info_from_issue(issue: "Issue") -> ValidationDict:
     """从议题中提取适配器信息"""
     body = issue.body if issue.body else ""
-    author = issue.user.login if issue.user else ""
-    author_id = issue.user.id if issue.user else None
     raw_data: dict[str, Any] = extract_publish_info_from_issue(
         {
             "module_name": ADAPTER_MODULE_NAME_PATTERN,
@@ -154,10 +168,10 @@ async def validate_adapter_info_from_issue(issue: "Issue") -> ValidationDict:
         },
         body,
     )
+    raw_data.update(extract_author_info(issue))
+
     with plugin_config.input_config.adapter_path.open("r", encoding="utf-8") as f:
         previous_data: list[dict[str, str]] = json.load(f)
-    raw_data["author"] = author
-    raw_data["author_id"] = author_id
     raw_data["previous_data"] = previous_data
 
     return validate_info(PublishType.ADAPTER, raw_data)
@@ -166,8 +180,6 @@ async def validate_adapter_info_from_issue(issue: "Issue") -> ValidationDict:
 async def validate_bot_info_from_issue(issue: "Issue") -> ValidationDict:
     """从议题中提取机器人信息"""
     body = issue.body if issue.body else ""
-    author = issue.user.login if issue.user else ""
-    author_id = issue.user.id if issue.user else None
     raw_data: dict[str, Any] = extract_publish_info_from_issue(
         {
             "name": BOT_NAME_PATTERN,
@@ -177,7 +189,6 @@ async def validate_bot_info_from_issue(issue: "Issue") -> ValidationDict:
         },
         body,
     )
-    raw_data["author"] = author
-    raw_data["author_id"] = author_id
+    raw_data.update(extract_author_info(issue))
 
     return validate_info(PublishType.BOT, raw_data)

@@ -19,11 +19,11 @@ class Tag(BaseModel):
 
     @field_serializer("color")
     def color_serializer(self, color: Color):
-        return color.as_hex()
+        return color.as_hex(format="long")
 
     @property
     def color_hex(self) -> str:
-        return self.color.as_hex()
+        return self.color.as_hex(format="long")
 
 
 class TagModel(BaseModel):
@@ -52,8 +52,7 @@ class Metadata(BaseModel):
     """插件元数据"""
 
     name: str
-    # 元数据序列化时使用 desc 字段，符合 Plugin 的描述字段名 desc
-    description: str = Field(serialization_alias="desc")
+    description: str = Field(alias="desc")
     homepage: str
     type: str | None = None
     supported_adapters: list[str] | None = None

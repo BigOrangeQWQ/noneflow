@@ -52,6 +52,7 @@ async def render_comment(result: ValidationDict, reuse: bool = False) -> str:
 
     # 有些数据不需要显示
     remove_keys = [
+        "author_id",
         "is_official",
         "module_name",
         "name",
