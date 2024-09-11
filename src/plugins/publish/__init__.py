@@ -200,9 +200,7 @@ async def handle_publish_plugin_check(
 
         # 检查是否满足发布要求
         # 仅在通过检查的情况下创建拉取请求
-        result = await validate_plugin_info_from_issue(
-            issue, plugin_config.skip_plugin_test
-        )
+        result = await validate_plugin_info_from_issue(issue)
 
         # 设置拉取请求与议题的标题
         # 限制标题长度，过长的标题不好看

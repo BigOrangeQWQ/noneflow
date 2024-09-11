@@ -1,6 +1,5 @@
 import json
 import docker
-
 from src.utils.constants import DOCKER_IMAGES
 from src.utils.store_test.models import DockerTestResult
 

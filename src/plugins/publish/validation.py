@@ -55,9 +55,7 @@ def extract_author_info(issue: "Issue") -> dict[str, Any]:
     }
 
 
-async def validate_plugin_info_from_issue(
-    issue: "Issue", skip_plugin_test: bool
-) -> ValidationDict:
+async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
     """从议题中获取插件信息，并且运行插件测试加载且获取插件元信息后进行验证"""
     body = issue.body if issue.body else ""
 
@@ -128,7 +126,7 @@ async def validate_plugin_info_from_issue(
     # 传入的验证插件信息的上下文
     validation_context = {
         "previous_data": previous_data,
-        "skip_plugin_test": skip_plugin_test,
+        "skip_plugin_test": plugin_config.skip_plugin_test,
         "plugin_test_output": plugin_test_output,
     }
 
@@ -172,9 +170,12 @@ async def validate_adapter_info_from_issue(issue: "Issue") -> ValidationDict:
 
     with plugin_config.input_config.adapter_path.open("r", encoding="utf-8") as f:
         previous_data: list[dict[str, str]] = json.load(f)
-    raw_data["previous_data"] = previous_data
 
-    return validate_info(PublishType.ADAPTER, raw_data)
+    validation_context = {
+        "previous_data": previous_data,
+    }
+
+    return validate_info(PublishType.ADAPTER, raw_data, validation_context)
 
 
 async def validate_bot_info_from_issue(issue: "Issue") -> ValidationDict:
@@ -189,6 +190,7 @@ async def validate_bot_info_from_issue(issue: "Issue") -> ValidationDict:
         },
         body,
     )
+
     raw_data.update(extract_author_info(issue))
 
     return validate_info(PublishType.BOT, raw_data)

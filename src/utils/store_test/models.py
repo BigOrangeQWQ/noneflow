@@ -52,7 +52,7 @@ class Metadata(BaseModel):
     """插件元数据"""
 
     name: str
-    description: str = Field(alias="desc")
+    description: str = Field(serialization_alias="desc", validation_alias="desc")
     homepage: str
     type: str | None = None
     supported_adapters: list[str] | None = None
