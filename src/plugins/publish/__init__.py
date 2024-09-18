@@ -23,7 +23,7 @@ from .depends import (
     get_repo_info,
     get_type_by_labels,
 )
-from .models import RepoInfo
+from src.depends.models import RepoInfo
 from .utils import (
     process_pr_and_issue_title,
     comment_issue,

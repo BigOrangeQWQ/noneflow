@@ -40,6 +40,7 @@ class PublishType(Enum):
     BOT = "Bot"
     PLUGIN = "Plugin"
     ADAPTER = "Adapter"
+    UNKNOWN = "Unknown"
 
     def __str__(self) -> str:
         return self.value
@@ -50,8 +51,8 @@ class ValidationDict(BaseModel):
     type: PublishType
     name: str
     author: str
-    data: dict[str, Any]
-    errors: list[ErrorDetails]
+    data: dict[str, Any] = {}
+    errors: list[ErrorDetails] = []
 
     @field_validator("data", mode="before")
     @classmethod

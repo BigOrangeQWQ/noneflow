@@ -1,8 +1,8 @@
-from pydantic import BaseModel
+# from pydantic import BaseModel
 
 
-class RepoInfo(BaseModel):
-    """仓库信息"""
+# class RepoInfo(BaseModel):
+#     """仓库信息"""
 
-    owner: str
-    repo: str
+#     owner: str
+#     repo: str

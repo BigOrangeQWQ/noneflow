@@ -13,6 +13,7 @@ from src.utils.validation import (
     PublishType,
     ValidationDict,
 )
+from src.depends.models import RepoInfo
 
 from .config import plugin_config
 from .constants import (
@@ -30,7 +31,6 @@ from .constants import (
     PROJECT_LINK_PATTERN,
     SKIP_PLUGIN_TEST_COMMENT,
 )
-from .models import RepoInfo
 from .render import render_comment
 
 if TYPE_CHECKING:
@@ -409,7 +409,7 @@ async def ensure_issue_test_button(
             issue_number=issue_number,
             body=f"{issue_body}\n\n{new_content}",
         )
-        logger.info("议题没有插件测试按钮，已添加")
+        logger.info("为议题添加插件重测按钮")
     elif search_result.group(1) == " ":
         new_content = issue_body.replace(
             search_result.group(0), PLUGIN_TEST_BUTTON_STRING
@@ -419,7 +419,7 @@ async def ensure_issue_test_button(
             issue_number=issue_number,
             body=new_content,
         )
-        logger.info("议题中插件测试按钮未选中，已更新")
+        logger.info("选中议题的插件测试按钮")
 
 
 async def should_skip_plugin_publish(

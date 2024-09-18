@@ -23,6 +23,8 @@ from .models import Plugin, StorePlugin, TestResult
 from .utils import dump_json, get_latest_version, load_json
 from .validation import validate_plugin
 
+print = click.echo
+
 
 class StoreTest:
     """商店测试"""
