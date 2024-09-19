@@ -222,8 +222,13 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
                 item.get("module_name") == module_name
                 and item.get("project_link") == project_link
                 and item.get("author") == author
-                and item.get("author_id") == author_id
             ):
+                if (
+                    item.get("author_id") is not None
+                    and item.get("author_id") != author_id
+                ):
+                    continue
+
                 data.remove(item)
                 return ValidationDict(
                     valid=True,
@@ -239,7 +244,7 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
     return ValidationDict(
         valid=False,
         type=PublishType.PLUGIN,
-        name="",
+        name="Not Found Plugin",
         author=author,
     )
 
@@ -311,7 +316,7 @@ async def process_pr_and_issue_title(
             )
             logger.info("删除没通过检查，已将之前的拉取请求转换为草稿")
         else:
-            logger.info("删除没通过检查，暂不创建拉取请求")
+            logger.info("没通过检查，暂不创建拉取请求")
 
     # 修改议题标题
     # 需要等创建完拉取请求并打上标签后执行
