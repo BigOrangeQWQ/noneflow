@@ -9,7 +9,7 @@ from nonebot.adapters.github.event import (
     IssueCommentCreated,
 )
 
-from .constants import BRANCH_NAME_PREFIX, BOT_MARKER
+from .constants import BRANCH_NAME_PREFIX, BOT_MARKER, NONEFLOW_MARKER
 from .depends import (
     comment_issue,
     get_name_by_labels,
@@ -83,5 +83,5 @@ async def handle_remove_check(
             bot,
             repo_info,
             issue_number,
-            "OMG",
+            "OMG\n" + NONEFLOW_MARKER,
         )
