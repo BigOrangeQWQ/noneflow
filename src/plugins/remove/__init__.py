@@ -16,10 +16,8 @@ from .depends import (
     process_pr_and_issue_title,
     validate_author_info,
 )
-from src.depends import get_installation_id, get_issue_number, get_repo_info
-from src.depends.models import RepoInfo
-
-type IssueEvent = IssuesOpened | IssuesReopened | IssuesEdited | IssueCommentCreated
+from src.providers.depends import get_installation_id, get_issue_number, get_repo_info
+from src.providers.depends.models import RepoInfo
 
 
 async def check_rule(
@@ -38,7 +36,7 @@ async def check_rule(
         and event.payload.sender.login
         and event.payload.sender.login.endswith(BOT_MARKER)
     ):
-        logger.info("议题修改来自机器人，已跳过")
+        logger.info("议题的修改来自机器人，已跳过")
         return False
     if event.payload.issue.pull_request:
         logger.info("评论在拉取请求下，已跳过")
@@ -74,13 +72,6 @@ async def handle_remove_check(
             await remove_check_matcher.finish()
 
         result = await validate_author_info(issue)
-
-        # try:
-        #     remove_info = RemoveInfo.model_validate(data)
-        # except ValidationError as err:
-        #     logger.error(f"数据验证失败: {err}")
-        #     # TODO: render ERROR info
-        #     await remove_check_matcher.finish()
 
         title = f"Remove {result.type}: {result.name}"
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"

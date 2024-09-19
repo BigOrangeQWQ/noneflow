@@ -13,7 +13,7 @@ from pydantic import (
     model_validator,
 )
 from pydantic_core import PydanticCustomError, to_jsonable_python
-from src.utils.store_test.models import Metadata, Tag
+from src.providers.store_test.models import Metadata, Tag
 
 from .constants import (
     NAME_MAX_LENGTH,

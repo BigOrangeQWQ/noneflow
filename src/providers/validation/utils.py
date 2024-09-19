@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from src.utils.constants import STORE_ADAPTERS_URL
+from src.providers.constants import STORE_ADAPTERS_URL
 
 from .constants import MESSAGE_TRANSLATIONS
 

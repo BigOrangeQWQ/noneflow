@@ -11,7 +11,8 @@ from nonebot.adapters.github import (
 )
 from nonebot.params import Depends
 
-from src.utils.validation.models import PublishType
+from providers.depends import IssueHandler
+from src.providers.validation.models import PublishType
 
 from .config import plugin_config
 from .constants import BOT_MARKER, BRANCH_NAME_PREFIX, TITLE_MAX_LENGTH
@@ -23,7 +24,7 @@ from .depends import (
     get_repo_info,
     get_type_by_labels,
 )
-from src.depends.models import RepoInfo
+from src.providers.depends.models import RepoInfo
 from .utils import (
     process_pr_and_issue_title,
     comment_issue,
@@ -175,13 +176,11 @@ async def handle_publish_plugin_check(
     publish_type: Literal[PublishType.PLUGIN] = Depends(get_type_by_labels),
 ) -> None:
     async with bot.as_installation(installation_id):
+        handler = IssueHandler(bot=bot, repo_info=repo_info, issue_number=issue_number)
+
         # 因为 Actions 会排队，触发事件相关的议题在 Actions 执行时可能已经被关闭
         # 所以需要获取最新的议题状态
-        issue = (
-            await bot.rest.issues.async_get(
-                **repo_info.model_dump(), issue_number=issue_number
-            )
-        ).parsed_data
+        issue = handler.issue
 
         if issue.state != "open":
             logger.info("议题未开启，已跳过")

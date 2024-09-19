@@ -4,7 +4,7 @@ from pytest_mock import MockerFixture
 async def test_get_type_by_labels(mocker: MockerFixture):
     """通过标签获取发布类型"""
     from src.plugins.publish.utils import get_type_by_labels
-    from src.utils.validation.models import PublishType
+    from src.providers.validation.models import PublishType
 
     mock_label = mocker.MagicMock()
     mock_label.name = "Bot"
@@ -40,7 +40,7 @@ async def test_get_type_by_labels_wrong(mocker: MockerFixture):
 async def test_get_type_by_title():
     """通过标题获取发布类型"""
     from src.plugins.publish.utils import get_type_by_title
-    from src.utils.validation.models import PublishType
+    from src.providers.validation.models import PublishType
 
     title = "Bot: test"
     publish_type = get_type_by_title(title)
@@ -70,7 +70,7 @@ async def test_get_type_by_title_wrong():
 async def test_get_type_by_commit_message():
     """通过提交信息获取发布类型"""
     from src.plugins.publish.utils import get_type_by_commit_message
-    from src.utils.validation.models import PublishType
+    from src.providers.validation.models import PublishType
 
     message = ":beers: publish bot test"
 

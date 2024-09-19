@@ -9,11 +9,11 @@ from nonebot import logger
 from nonebot.adapters.github import Bot, GitHubBot
 
 from .validation import validate_plugin_info_from_issue
-from src.utils.validation import (
+from src.providers.validation import (
     PublishType,
     ValidationDict,
 )
-from src.depends.models import RepoInfo
+from src.providers.depends.models import RepoInfo
 
 from .config import plugin_config
 from .constants import (

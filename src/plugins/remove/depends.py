@@ -30,11 +30,12 @@ from nonebot.params import Depends
 from .constants import (
     COMMIT_MESSAGE_PREFIX,
     NONEFLOW_MARKER,
-    REMOVE_HOMEPAGE,
+    REMOVE_PLUGIN_MODULE_NAME_PATTERN,
+    REMOVE_PROJECT_LINK_PATTERN,
 )
-from src.depends.models import RepoInfo
-from src.utils.validation import extract_publish_info_from_issue
-from src.utils.validation.models import PublishType, ValidationDict
+from src.providers.depends.models import RepoInfo
+from src.providers.validation import extract_publish_info_from_issue
+from src.providers.validation.models import PublishType, ValidationDict
 from .config import plugin_config
 
 
@@ -193,12 +194,15 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
     根据主页链接与作者信息删除对应的包储存在商店里的数据，若存在则返回 True
     """
 
-    homepage = extract_publish_info_from_issue(
+    data = extract_publish_info_from_issue(
         {
-            "homepage": REMOVE_HOMEPAGE,
+            "project_link": REMOVE_PROJECT_LINK_PATTERN,
+            "module_name": REMOVE_PLUGIN_MODULE_NAME_PATTERN,
         },
         issue.body or "",
-    ).get("homepage", "")
+    )
+    project_link = data.get("project_link")
+    module_name = data.get("module_name")
     author = issue.user.login if issue.user else ""
     author_id = issue.user.id if issue.user else None
 
@@ -217,7 +221,8 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
         data = load_json(path)
         for item in data:
             if (
-                item.get("homepage") == homepage
+                item.get("module_name") == module_name
+                and item.get("project_link") == project_link
                 and item.get("author") == author
                 and item.get("author_id") == author_id
             ):
@@ -235,7 +240,7 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
 
     return ValidationDict(
         valid=valid,
-        type=PublishType.UNKNOWN,
+        type=PublishType.PLUGIN,
         name="",
         author=author,
     )

@@ -3,7 +3,7 @@
 
 # def test_extract_version(tmp_path: Path):
 #     """poetry show 的输出"""
-#     from src.utils.store_test.validation import extract_version
+#     from src.providers.store_test.validation import extract_version
 
 #     with open(tmp_path / "output.txt", "w", encoding="utf8") as f:
 #         f.write(
@@ -33,7 +33,7 @@
 
 # def test_extract_version_failed(tmp_path: Path):
 #     """版本解析失败的情况"""
-#     from src.utils.store_test.validation import extract_version
+#     from src.providers.store_test.validation import extract_version
 
 #     with open(tmp_path / "output.txt", "w", encoding="utf8") as f:
 #         f.write(

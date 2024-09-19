@@ -8,7 +8,7 @@ from pytest_mock import MockerFixture
 
 
 async def test_comment_issue(app: App, mocker: MockerFixture):
-    from src.depends.models import RepoInfo
+    from src.providers.depends.models import RepoInfo
     from src.plugins.publish.utils import comment_issue
 
     mock_render_comment = mocker.patch("src.plugins.publish.utils.render_comment")
@@ -56,7 +56,7 @@ async def test_comment_issue(app: App, mocker: MockerFixture):
 
 async def test_comment_issue_reuse(app: App, mocker: MockerFixture):
     from src.plugins.publish.constants import NONEFLOW_MARKER
-    from src.depends.models import RepoInfo
+    from src.providers.depends.models import RepoInfo
     from src.plugins.publish.utils import comment_issue
 
     mock_render_comment = mocker.patch("src.plugins.publish.utils.render_comment")
@@ -105,7 +105,7 @@ async def test_comment_issue_reuse(app: App, mocker: MockerFixture):
 
 async def test_comment_issue_reuse_same(app: App, mocker: MockerFixture):
     """测试评论内容相同时不会更新评论"""
-    from src.depends.models import RepoInfo
+    from src.providers.depends.models import RepoInfo
     from src.plugins.publish.utils import comment_issue
 
     mock_render_comment = mocker.patch("src.plugins.publish.utils.render_comment")

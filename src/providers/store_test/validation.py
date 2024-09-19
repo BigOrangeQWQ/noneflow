@@ -5,10 +5,10 @@ from typing import Any
 
 import click
 
-from src.utils.validation import PublishType, validate_info
-from src.utils.docker_test import DockerPluginTest
-from src.utils.constants import DOCKER_IMAGES
-from src.utils.validation.models import ValidationDict
+from src.providers.validation import PublishType, validate_info
+from src.providers.docker_test import DockerPluginTest
+from src.providers.constants import DOCKER_IMAGES
+from src.providers.validation.models import ValidationDict
 
 from .models import Metadata, Plugin, StorePlugin, TestResult
 from .utils import get_latest_version, get_upload_time

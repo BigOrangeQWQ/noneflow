@@ -21,9 +21,9 @@ from nonebot.adapters.github import (
 from nonebot.params import Depends
 
 from src.plugins.publish import utils
-from src.utils.validation.models import PublishType
+from src.providers.validation.models import PublishType
 
-from src.depends.models import RepoInfo
+from src.providers.depends.models import RepoInfo
 
 
 def get_repo_info(

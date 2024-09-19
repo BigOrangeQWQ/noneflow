@@ -1,5 +1,6 @@
 import re
 
+
 NONEFLOW_MARKER = "<!-- NONEFLOW -->"
 
 BOT_MARKER = "[bot]"
@@ -21,4 +22,5 @@ ISSUE_PATTERN = r"### {}\s+([^\s#].*?)(?=(?:\s+###|$))"
 ISSUE_FIELD_TEMPLATE = "### {}"
 ISSUE_FIELD_PATTERN = r"### {}\s+"
 
-REMOVE_HOMEPAGE = re.compile(ISSUE_PATTERN.format("项目主页"))
+REMOVE_PROJECT_LINK_PATTERN = re.compile(ISSUE_PATTERN.format("PyPI 项目名"))
+REMOVE_PLUGIN_MODULE_NAME_PATTERN = re.compile(ISSUE_PATTERN.format("插件 import 包名"))

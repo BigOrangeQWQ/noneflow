@@ -5,7 +5,7 @@ from nonebug import App
 async def test_render_empty(app: App):
     """测试没有数据和错误时的输出"""
     from src.plugins.publish.render import render_comment
-    from src.utils.validation import PublishType, ValidationDict
+    from src.providers.validation import PublishType, ValidationDict
 
     result = ValidationDict(
         type=PublishType.BOT,
@@ -42,7 +42,7 @@ async def test_render_empty(app: App):
 async def test_render_reuse(app: App):
     """复用评论"""
     from src.plugins.publish.render import render_comment
-    from src.utils.validation import PublishType, ValidationDict
+    from src.providers.validation import PublishType, ValidationDict
 
     result = ValidationDict(
         type=PublishType.BOT,

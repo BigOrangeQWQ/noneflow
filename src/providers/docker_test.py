@@ -1,7 +1,7 @@
 import json
 import docker
-from src.utils.constants import DOCKER_IMAGES
-from src.utils.store_test.models import DockerTestResult
+from src.providers.constants import DOCKER_IMAGES
+from src.providers.store_test.models import DockerTestResult
 
 
 class DockerPluginTest:

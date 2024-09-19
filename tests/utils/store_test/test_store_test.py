@@ -5,7 +5,7 @@ import pytest
 from pytest_mock import MockerFixture
 from respx import MockRouter
 
-from src.utils.constants import (
+from src.providers.constants import (
     REGISTRY_PLUGINS_URL,
     REGISTRY_RESULTS_URL,
     STORE_ADAPTERS_URL,
@@ -39,20 +39,20 @@ def mocked_store_data(
     }
 
     mocker.patch(
-        "src.utils.store_test.store.RESULTS_PATH",
+        "src.providers.store_test.store.RESULTS_PATH",
         paths["results"],
     )
     mocker.patch(
-        "src.utils.store_test.store.ADAPTERS_PATH",
+        "src.providers.store_test.store.ADAPTERS_PATH",
         paths["adapters"],
     )
-    mocker.patch("src.utils.store_test.store.BOTS_PATH", paths["bots"])
+    mocker.patch("src.providers.store_test.store.BOTS_PATH", paths["bots"])
     mocker.patch(
-        "src.utils.store_test.store.DRIVERS_PATH",
+        "src.providers.store_test.store.DRIVERS_PATH",
         paths["drivers"],
     )
     mocker.patch(
-        "src.utils.store_test.store.PLUGINS_PATH",
+        "src.providers.store_test.store.PLUGINS_PATH",
         paths["plugins"],
     )
 
@@ -75,9 +75,11 @@ async def test_store_test(
     第二插件验证通过
     因为 limit=1 所以只测试了一个插件，第三个插件未测试
     """
-    from src.utils.store_test.store import Plugin, StoreTest, TestResult
+    from src.providers.store_test.store import Plugin, StoreTest, TestResult
 
-    mocked_validate_plugin = mocker.patch("src.utils.store_test.store.validate_plugin")
+    mocked_validate_plugin = mocker.patch(
+        "src.providers.store_test.store.validate_plugin"
+    )
     mocked_validate_plugin.return_value = (
         TestResult(
             time="2023-08-28T00:00:00.000000+08:00",
@@ -177,9 +179,11 @@ async def test_store_test_with_key(
     mocked_store_data: dict[str, Path], mocked_api: MockRouter, mocker: MockerFixture
 ) -> None:
     """测试指定插件，因为版本更新正常测试"""
-    from src.utils.store_test.store import StoreTest
+    from src.providers.store_test.store import StoreTest
 
-    mocked_validate_plugin = mocker.patch("src.utils.store_test.store.validate_plugin")
+    mocked_validate_plugin = mocker.patch(
+        "src.providers.store_test.store.validate_plugin"
+    )
     mocked_validate_plugin.return_value = ({}, {})
 
     test = StoreTest(0, 1, False)
@@ -219,9 +223,11 @@ async def test_store_test_with_key_skip(
     mocked_store_data: dict[str, Path], mocked_api: MockRouter, mocker: MockerFixture
 ) -> None:
     """测试指定插件，因为版本未更新跳过测试"""
-    from src.utils.store_test.store import StoreTest
+    from src.providers.store_test.store import StoreTest
 
-    mocked_validate_plugin = mocker.patch("src.utils.store_test.store.validate_plugin")
+    mocked_validate_plugin = mocker.patch(
+        "src.providers.store_test.store.validate_plugin"
+    )
 
     test = StoreTest(0, 1, False)
     await test.run(key="nonebot-plugin-datastore:nonebot_plugin_datastore")
@@ -235,9 +241,11 @@ async def test_store_test_with_key_not_in_previous(
     mocked_store_data: dict[str, Path], mocked_api: MockRouter, mocker: MockerFixture
 ) -> None:
     """测试指定插件，因为从未测试过，正常测试"""
-    from src.utils.store_test.store import StoreTest
+    from src.providers.store_test.store import StoreTest
 
-    mocked_validate_plugin = mocker.patch("src.utils.store_test.store.validate_plugin")
+    mocked_validate_plugin = mocker.patch(
+        "src.providers.store_test.store.validate_plugin"
+    )
     mocked_validate_plugin.return_value = ({}, {})
 
     test = StoreTest(0, 1, False)
@@ -274,9 +282,11 @@ async def test_store_test_raise(
 
     最后数据没有变化
     """
-    from src.utils.store_test.store import StoreTest
+    from src.providers.store_test.store import StoreTest
 
-    mocked_validate_plugin = mocker.patch("src.utils.store_test.store.validate_plugin")
+    mocked_validate_plugin = mocker.patch(
+        "src.providers.store_test.store.validate_plugin"
+    )
     mocked_validate_plugin.side_effect = Exception
 
     test = StoreTest(0, 1, False)
@@ -353,9 +363,11 @@ async def test_store_test_with_key_raise(
     mocked_store_data: dict[str, Path], mocked_api: MockRouter, mocker: MockerFixture
 ):
     """测试指定插件，但是测试过程中报错"""
-    from src.utils.store_test.store import StoreTest
+    from src.providers.store_test.store import StoreTest
 
-    mocked_validate_plugin = mocker.patch("src.utils.store_test.store.validate_plugin")
+    mocked_validate_plugin = mocker.patch(
+        "src.providers.store_test.store.validate_plugin"
+    )
     mocked_validate_plugin.side_effect = Exception
 
     test = StoreTest(0, 1, False)

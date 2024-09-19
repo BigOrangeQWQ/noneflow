@@ -1,6 +1,6 @@
 import click
 
-from src.utils.constants import (
+from src.providers.constants import (
     REGISTRY_PLUGIN_CONFIG_URL,
     REGISTRY_PLUGINS_URL,
     REGISTRY_RESULTS_URL,
