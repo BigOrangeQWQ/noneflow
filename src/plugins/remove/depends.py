@@ -212,8 +212,6 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
         PublishType.BOT: plugin_config.input_config.bot_path,
     }
 
-    valid = False  # 标记是否有匹配的数据
-
     for type, path in store_data.items():
         if not path.exists():
             continue
@@ -228,7 +226,7 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
             ):
                 data.remove(item)
                 return ValidationDict(
-                    valid=valid,
+                    valid=True,
                     data=item,
                     type=type,
                     name=item.get("name") or "",
@@ -239,7 +237,7 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
             json.dump(data, f)
 
     return ValidationDict(
-        valid=valid,
+        valid=False,
         type=PublishType.PLUGIN,
         name="",
         author=author,
@@ -311,9 +309,9 @@ async def process_pr_and_issue_title(
                 }""",
                 variables={"pullRequestId": pull.node_id},
             )
-            logger.info("发布没通过检查，已将之前的拉取请求转换为草稿")
+            logger.info("删除没通过检查，已将之前的拉取请求转换为草稿")
         else:
-            logger.info("发布没通过检查，暂不创建拉取请求")
+            logger.info("删除没通过检查，暂不创建拉取请求")
 
     # 修改议题标题
     # 需要等创建完拉取请求并打上标签后执行
