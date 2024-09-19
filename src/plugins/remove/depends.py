@@ -194,15 +194,15 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
     根据主页链接与作者信息删除对应的包储存在商店里的数据，若存在则返回 True
     """
 
-    data = extract_publish_info_from_issue(
+    issue_data = extract_publish_info_from_issue(
         {
             "project_link": REMOVE_PROJECT_LINK_PATTERN,
             "module_name": REMOVE_PLUGIN_MODULE_NAME_PATTERN,
         },
         issue.body or "",
     )
-    project_link = data.get("project_link")
-    module_name = data.get("module_name")
+    project_link = issue_data.get("project_link")
+    module_name = issue_data.get("module_name")
     author = issue.user.login if issue.user else ""
     author_id = issue.user.id if issue.user else None
 
@@ -218,18 +218,20 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
 
         data = load_json(path)
         for item in data:
+            logger.info(f"{type}, {item}")
+
             if (
                 item.get("module_name") == module_name
                 and item.get("project_link") == project_link
                 and item.get("author") == author
             ):
+                logger.info(f"找到匹配的 {type} 数据")
                 if (
                     item.get("author_id") is not None
                     and item.get("author_id") != author_id
                 ):
                     continue
 
-                data.remove(item)
                 return ValidationDict(
                     valid=True,
                     data=item,
@@ -238,15 +240,21 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
                     author=author,
                     errors=[],
                 )
-        with path.open("w", encoding="UTF-8") as f:
-            json.dump(data, f)
 
     return ValidationDict(
         valid=False,
         type=PublishType.PLUGIN,
-        name="Not Found Plugin",
+        name=project_link or module_name or "not found",
         author=author,
     )
+
+
+def update_file(result: ValidationDict):
+    with open(plugin_config.input_config.plugin_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        data.remove(result.data)
+    with open(plugin_config.input_config.plugin_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
 
 
 # 验证成不成功，作者的信息，
