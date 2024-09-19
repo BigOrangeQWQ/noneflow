@@ -211,7 +211,7 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
         PublishType.ADAPTER: plugin_config.input_config.adapter_path,
         PublishType.BOT: plugin_config.input_config.bot_path,
     }
-
+    logger.info(f"self info {project_link}, {module_name}, {author}, {author_id}")
     for type, path in store_data.items():
         if not path.exists():
             continue
