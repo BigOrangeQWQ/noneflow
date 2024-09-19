@@ -196,8 +196,8 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
 
     issue_data = extract_publish_info_from_issue(
         {
-            "project_link": REMOVE_PROJECT_LINK_PATTERN,
-            "module_name": REMOVE_PLUGIN_MODULE_NAME_PATTERN,
+            "project_link": REMOVE_PLUGIN_MODULE_NAME_PATTERN,
+            "module_name": REMOVE_PROJECT_LINK_PATTERN,
         },
         issue.body or "",
     )
@@ -218,8 +218,6 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
 
         data = load_json(path)
         for item in data:
-            logger.info(f"{type}, {item}")
-
             if (
                 item.get("module_name") == module_name
                 and item.get("project_link") == project_link
