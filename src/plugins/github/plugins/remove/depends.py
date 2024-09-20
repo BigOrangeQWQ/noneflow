@@ -27,7 +27,7 @@ from nonebot.adapters.github import (
 from githubkit.rest import Issue
 from nonebot.params import Depends
 
-from plugins.github.depends.utils import run_shell_command
+from src.plugins.github.depends.utils import run_shell_command
 
 from .constants import (
     COMMIT_MESSAGE_PREFIX,

@@ -4,7 +4,9 @@ import nonebot
 
 from .config import Config
 
+# plugin_config = Config.model_validate(dict(nonebot.get_driver().config))
+
+plugin_config = nonebot.get_plugin_config(Config)
+
 # 加载子插件
 sub_plugins = nonebot.load_plugins(str((Path(__file__).parent / "plugins").resolve()))
-
-plugin_config = Config.model_validate(dict(nonebot.get_driver().config))
