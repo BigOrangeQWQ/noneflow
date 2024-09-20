@@ -12,10 +12,12 @@ from nonebot.adapters.github import (
 from nonebot.params import Depends
 
 from src.plugins.depends import (
+    bypass_git,
     get_installation_id,
     get_issue_number,
     get_repo_info,
     get_related_issue_number,
+    install_pre_commit_hooks,
 )
 from src.plugins.depends.models import IssueHandler, RepoInfo
 from src.providers.validation.models import PublishType
@@ -44,17 +46,6 @@ from .validation import (
     validate_bot_info_from_issue,
     validate_plugin_info_from_issue,
 )
-
-
-def bypass_git():
-    """绕过检查"""
-    # https://github.blog/2022-04-18-highlights-from-git-2-36/#stricter-repository-ownership-checks
-    run_shell_command(["git", "config", "--global", "safe.directory", "*"])
-
-
-def install_pre_commit_hooks():
-    """安装 pre-commit 钩子"""
-    run_shell_command(["pre-commit", "install", "--install-hooks"])
 
 
 async def pr_close_rule(

@@ -16,7 +16,13 @@ from .depends import (
     process_pr_and_issue_title,
     validate_author_info,
 )
-from src.plugins.depends import get_installation_id, get_issue_number, get_repo_info
+from src.plugins.depends import (
+    bypass_git,
+    get_installation_id,
+    get_issue_number,
+    get_repo_info,
+    install_pre_commit_hooks,
+)
 from src.plugins.depends import RepoInfo
 
 
@@ -53,7 +59,9 @@ remove_check_matcher = on_type(
 )
 
 
-@remove_check_matcher.handle()
+@remove_check_matcher.handle(
+    parameterless=[Depends(bypass_git), Depends(install_pre_commit_hooks)]
+)
 async def handle_remove_check(
     bot: GitHubBot,
     installation_id: int = Depends(get_installation_id),
@@ -83,5 +91,5 @@ async def handle_remove_check(
             bot,
             repo_info,
             issue_number,
-            "OMG\n" + NONEFLOW_MARKER,
+            f"OMG\n- Result: {result.valid}" + NONEFLOW_MARKER,
         )

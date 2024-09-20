@@ -1,0 +1,27 @@
+# 📃 商店下架检查结果
+
+> {{ title }}
+
+**{{ "✅ 所有检查通过，一切准备就绪！" if valid else "⚠️ 在下架检查过程中，我们发现以下问题："}}**
+
+{% if not valid %}
+<pre><code>
+{%- for error in errors %}
+<li>⚠️ {{ error.name }}: {{ error.message }}</li>
+{%- endfor %}
+</code></pre>
+{% else %}
+<summary>发起插件下架流程！</summary>
+{% endif %}
+
+---
+
+💡 如需修改信息，请直接修改 issue，机器人会自动更新检查结果。
+💡 当插件加载测试失败时，请发布新版本后在当前页面下评论任意内容以触发测试。
+
+{% if reuse %}
+♻️ 评论已更新至最新检查结果
+{% endif %}
+
+💪 Powered by [NoneFlow](https://github.com/nonebot/noneflow)
+<!-- NONEFLOW -->

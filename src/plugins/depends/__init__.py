@@ -9,10 +9,19 @@ from nonebot.adapters.github import (
 )
 from nonebot.params import Depends
 
-# from plugins.remove.constants import NONEFLOW_MARKER
-# from plugins.remove.depends import run_shell_command
-from .utils import extract_issue_number_from_ref
+from .utils import extract_issue_number_from_ref, run_shell_command
 from .models import RepoInfo
+
+
+def bypass_git():
+    """绕过检查"""
+    # https://github.blog/2022-04-18-highlights-from-git-2-36/#stricter-repository-ownership-checks
+    run_shell_command(["git", "config", "--global", "safe.directory", "*"])
+
+
+def install_pre_commit_hooks():
+    """安装 pre-commit 钩子"""
+    run_shell_command(["pre-commit", "install", "--install-hooks"])
 
 
 def get_labels(
