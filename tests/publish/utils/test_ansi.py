@@ -2,7 +2,7 @@ from nonebug import App
 
 
 async def test_strip_ansi(app: App):
-    from src.plugins.publish.validation import strip_ansi
+    from src.plugins.github.publish.validation import strip_ansi
 
     assert strip_ansi("test") == "test"
 

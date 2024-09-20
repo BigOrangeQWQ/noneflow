@@ -8,10 +8,12 @@ from pytest_mock import MockerFixture
 
 
 async def test_comment_issue(app: App, mocker: MockerFixture):
-    from src.providers.depends.models import RepoInfo
-    from src.plugins.publish.utils import comment_issue
+    from src.plugins.depends.models import RepoInfo
+    from src.plugins.github.publish.utils import comment_issue
 
-    mock_render_comment = mocker.patch("src.plugins.publish.utils.render_comment")
+    mock_render_comment = mocker.patch(
+        "src.plugins.github.publish.utils.render_comment"
+    )
     mock_render_comment.return_value = "test"
 
     mock_result = mocker.AsyncMock()
@@ -55,11 +57,13 @@ async def test_comment_issue(app: App, mocker: MockerFixture):
 
 
 async def test_comment_issue_reuse(app: App, mocker: MockerFixture):
-    from src.plugins.publish.constants import NONEFLOW_MARKER
-    from src.providers.depends.models import RepoInfo
-    from src.plugins.publish.utils import comment_issue
+    from src.plugins.github.publish.constants import NONEFLOW_MARKER
+    from src.plugins.depends.models import RepoInfo
+    from src.plugins.github.publish.utils import comment_issue
 
-    mock_render_comment = mocker.patch("src.plugins.publish.utils.render_comment")
+    mock_render_comment = mocker.patch(
+        "src.plugins.github.publish.utils.render_comment"
+    )
     mock_render_comment.return_value = "test"
 
     mock_result = mocker.AsyncMock()
@@ -105,10 +109,12 @@ async def test_comment_issue_reuse(app: App, mocker: MockerFixture):
 
 async def test_comment_issue_reuse_same(app: App, mocker: MockerFixture):
     """测试评论内容相同时不会更新评论"""
-    from src.providers.depends.models import RepoInfo
-    from src.plugins.publish.utils import comment_issue
+    from src.plugins.depends.models import RepoInfo
+    from src.plugins.github.publish.utils import comment_issue
 
-    mock_render_comment = mocker.patch("src.plugins.publish.utils.render_comment")
+    mock_render_comment = mocker.patch(
+        "src.plugins.github.publish.utils.render_comment"
+    )
     mock_render_comment.return_value = "test\n<!-- NONEFLOW -->\n"
 
     mock_result = mocker.AsyncMock()

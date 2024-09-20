@@ -27,33 +27,18 @@ from nonebot.adapters.github import (
 from githubkit.rest import Issue
 from nonebot.params import Depends
 
+from plugins.depends.utils import run_shell_command
+
 from .constants import (
     COMMIT_MESSAGE_PREFIX,
     NONEFLOW_MARKER,
     REMOVE_PLUGIN_MODULE_NAME_PATTERN,
     REMOVE_PROJECT_LINK_PATTERN,
 )
-from src.providers.depends.models import RepoInfo
+from src.plugins.depends.models import RepoInfo
 from src.providers.validation import extract_publish_info_from_issue
 from src.providers.validation.models import PublishType, ValidationDict
-from .config import plugin_config
-
-
-def run_shell_command(command: list[str]):
-    """运行 shell 命令
-
-    如果遇到错误则抛出异常
-    """
-    logger.info(f"运行命令: {command}")
-    try:
-        r = subprocess.run(command, check=True, capture_output=True)
-        logger.debug(f"命令输出: \n{r.stdout.decode()}")
-    except subprocess.CalledProcessError as e:
-        logger.debug("命令运行失败")
-        logger.debug(f"命令输出: \n{e.stdout.decode()}")
-        logger.debug(f"命令错误: \n{e.stderr.decode()}")
-        raise
-    return r
+from .. import plugin_config
 
 
 async def create_pull_request(

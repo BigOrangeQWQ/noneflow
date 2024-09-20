@@ -44,7 +44,7 @@ def load_plugin(nonebug_init: None) -> set["Plugin"]:
 
 @pytest.fixture()
 async def app(app: App, tmp_path: Path, mocker: MockerFixture):
-    from src.plugins.publish.config import plugin_config
+    from src.plugins.github import plugin_config
 
     adapter_path = tmp_path / "adapters.json"
     with adapter_path.open("w") as f:

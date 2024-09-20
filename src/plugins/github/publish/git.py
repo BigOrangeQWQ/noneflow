@@ -2,7 +2,7 @@
 常见的 Git 操作封装
 """
 
-from plugins.publish.utils import run_shell_command
+from src.plugins.depends.utils import run_shell_command
 
 
 def git_add_all():

@@ -16,8 +16,8 @@ from .depends import (
     process_pr_and_issue_title,
     validate_author_info,
 )
-from src.providers.depends import get_installation_id, get_issue_number, get_repo_info
-from src.providers.depends.models import RepoInfo
+from src.plugins.depends import get_installation_id, get_issue_number, get_repo_info
+from src.plugins.depends import RepoInfo
 
 
 async def check_rule(

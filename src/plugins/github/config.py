@@ -18,6 +18,3 @@ class Config(BaseModel, extra="ignore"):
     github_repository: str
     github_run_id: str
     skip_plugin_test: bool = False
-
-
-plugin_config = Config.model_validate(dict(get_driver().config))

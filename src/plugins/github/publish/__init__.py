@@ -11,20 +11,23 @@ from nonebot.adapters.github import (
 )
 from nonebot.params import Depends
 
-# from src.providers.depends import IssueHandler
-from src.providers.validation.models import PublishType
-
-from .config import plugin_config
-from .constants import BOT_MARKER, BRANCH_NAME_PREFIX, TITLE_MAX_LENGTH
-from .depends import (
+from src.plugins.depends import (
     get_installation_id,
     get_issue_number,
-    get_pull_requests_by_label,
-    get_related_issue_number,
     get_repo_info,
+    get_related_issue_number,
+)
+from src.plugins.depends.models import IssueHandler, RepoInfo
+from src.providers.validation.models import PublishType
+
+from .. import plugin_config
+
+from .constants import BOT_MARKER, BRANCH_NAME_PREFIX, TITLE_MAX_LENGTH
+from .depends import (
+    get_pull_requests_by_label,
     get_type_by_labels,
 )
-from src.providers.depends.models import RepoInfo
+
 from .utils import (
     process_pr_and_issue_title,
     comment_issue,
@@ -176,16 +179,17 @@ async def handle_publish_plugin_check(
     publish_type: Literal[PublishType.PLUGIN] = Depends(get_type_by_labels),
 ) -> None:
     async with bot.as_installation(installation_id):
-        # handler = IssueHandler(bot=bot, repo_info=repo_info, issue_number=issue_number)
-
         # 因为 Actions 会排队，触发事件相关的议题在 Actions 执行时可能已经被关闭
         # 所以需要获取最新的议题状态
-        # issue = handler.issue
         issue = (
             await bot.rest.issues.async_get(
                 **repo_info.model_dump(), issue_number=issue_number
             )
         ).parsed_data
+
+        handler = IssueHandler.model_construct(
+            issue=issue, bot=bot, repo_info=repo_info, issue_number=issue_number
+        )
 
         if issue.state != "open":
             logger.info("议题未开启，已跳过")
@@ -214,13 +218,8 @@ async def handle_publish_plugin_check(
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
 
         # 验证之后创建拉取请求和修改议题的标题
-        await process_pr_and_issue_title(
-            bot, repo_info, result, branch_name, issue_number, title, issue
-        )
+        await process_pr_and_issue_title(handler, result, branch_name, title)
 
-        # 修改议题标题
-        # 需要等创建完拉取请求并打上标签后执行
-        # 不然会因为修改议题触发 Actions 导致标签没有正常打上
         await ensure_issue_test_button(bot, repo_info, issue_number, issue.body or "")
         await comment_issue(bot, repo_info, issue_number, result)
 
@@ -244,6 +243,10 @@ async def handle_adapter_publish_check(
             )
         ).parsed_data
 
+        handler = IssueHandler.model_construct(
+            issue=issue, bot=bot, repo_info=repo_info, issue_number=issue_number
+        )
+
         if issue.state != "open":
             logger.info("议题未开启，已跳过")
             await publish_check_matcher.finish()
@@ -260,9 +263,7 @@ async def handle_adapter_publish_check(
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
 
         # 验证之后创建拉取请求和修改议题的标题
-        await process_pr_and_issue_title(
-            bot, repo_info, result, branch_name, issue_number, title, issue
-        )
+        await process_pr_and_issue_title(handler, result, branch_name, title)
 
         await comment_issue(bot, repo_info, issue_number, result)
 
@@ -280,11 +281,16 @@ async def handle_bot_publish_check(
     async with bot.as_installation(installation_id):
         # 因为 Actions 会排队，触发事件相关的议题在 Actions 执行时可能已经被关闭
         # 所以需要获取最新的议题状态
+
         issue = (
             await bot.rest.issues.async_get(
                 **repo_info.model_dump(), issue_number=issue_number
             )
         ).parsed_data
+
+        handler = IssueHandler.model_construct(
+            issue=issue, bot=bot, repo_info=repo_info, issue_number=issue_number
+        )
 
         if issue.state != "open":
             logger.info("议题未开启，已跳过")
@@ -302,9 +308,7 @@ async def handle_bot_publish_check(
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
 
         # 验证之后创建拉取请求和修改议题的标题
-        await process_pr_and_issue_title(
-            bot, repo_info, result, branch_name, issue_number, title, issue
-        )
+        await process_pr_and_issue_title(handler, result, branch_name, title)
 
         await comment_issue(bot, repo_info, issue_number, result)
 

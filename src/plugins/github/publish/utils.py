@@ -8,14 +8,16 @@ from githubkit.typing import Missing
 from nonebot import logger
 from nonebot.adapters.github import Bot, GitHubBot
 
+from src.plugins.depends.models import IssueHandler
+
 from .validation import validate_plugin_info_from_issue
 from src.providers.validation import (
     PublishType,
     ValidationDict,
 )
-from src.providers.depends.models import RepoInfo
+from src.plugins.depends import RepoInfo
 
-from .config import plugin_config
+from .. import plugin_config
 from .constants import (
     BRANCH_NAME_PREFIX,
     COMMIT_MESSAGE_PREFIX,
@@ -434,17 +436,19 @@ async def should_skip_plugin_publish(
 
 
 async def process_pr_and_issue_title(
-    bot: Bot,
-    repo_info: RepoInfo,
+    handler: IssueHandler,
     result: ValidationDict,
     branch_name: str,
-    issue_number: int,
     title: str,
-    issue: "Issue",
 ):
     """
     根据发布信息合法性创建拉取请求或将请求改为草稿，并修改议题标题
     """
+    bot = handler.bot
+    issue_number = handler.issue_number
+    repo_info = handler.repo_info
+    issue = handler.issue
+
     if result.valid:
         run_shell_command(["git", "switch", "-C", branch_name])
         # 更新文件并提交更改
