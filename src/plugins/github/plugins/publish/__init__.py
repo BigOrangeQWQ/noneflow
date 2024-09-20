@@ -11,6 +11,7 @@ from nonebot.adapters.github import (
 )
 from nonebot.params import Depends
 
+from src.plugins.github.plugins.publish.render import render_comment
 from src.plugins.github.depends import (
     bypass_git,
     get_installation_id,
@@ -32,7 +33,6 @@ from .depends import (
 
 from .utils import (
     process_pr_and_issue_title,
-    comment_issue,
     ensure_issue_content,
     ensure_issue_test_button,
     resolve_conflict_pull_requests,
@@ -195,7 +195,7 @@ async def handle_publish_plugin_check(
         )
         # 如果需要跳过插件测试，则修改议题内容，确保其包含插件所需信息
         if plugin_config.skip_plugin_test:
-            await ensure_issue_content(bot, repo_info, issue_number, issue.body or "")
+            await ensure_issue_content(handler)
 
         # 检查是否满足发布要求
         # 仅在通过检查的情况下创建拉取请求
@@ -211,8 +211,10 @@ async def handle_publish_plugin_check(
         # 验证之后创建拉取请求和修改议题的标题
         await process_pr_and_issue_title(handler, result, branch_name, title)
 
-        await ensure_issue_test_button(bot, repo_info, issue_number, issue.body or "")
-        await comment_issue(bot, repo_info, issue_number, result)
+        await ensure_issue_test_button(handler)
+
+        comment = await render_comment(result, True)
+        await handler.comment_issue(comment)
 
 
 @publish_check_matcher.handle(
@@ -256,7 +258,8 @@ async def handle_adapter_publish_check(
         # 验证之后创建拉取请求和修改议题的标题
         await process_pr_and_issue_title(handler, result, branch_name, title)
 
-        await comment_issue(bot, repo_info, issue_number, result)
+        comment = await render_comment(result, True)
+        await handler.comment_issue(comment)
 
 
 @publish_check_matcher.handle(
@@ -301,7 +304,8 @@ async def handle_bot_publish_check(
         # 验证之后创建拉取请求和修改议题的标题
         await process_pr_and_issue_title(handler, result, branch_name, title)
 
-        await comment_issue(bot, repo_info, issue_number, result)
+        comment = await render_comment(result, True)
+        await handler.comment_issue(comment)
 
 
 async def review_submiited_rule(

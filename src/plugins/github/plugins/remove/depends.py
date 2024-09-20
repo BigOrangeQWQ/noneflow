@@ -29,12 +29,8 @@ from nonebot.params import Depends
 
 from src.plugins.github.depends.utils import run_shell_command
 
-from .constants import (
-    COMMIT_MESSAGE_PREFIX,
-    NONEFLOW_MARKER,
-    REMOVE_PLUGIN_MODULE_NAME_PATTERN,
-    REMOVE_PROJECT_LINK_PATTERN,
-)
+from src.plugins.github.constants import NONEFLOW_MARKER
+from .constants import COMMIT_MESSAGE_PREFIX, REMOVE_HOMEPAGE_PATTERN
 from src.plugins.github.depends.models import RepoInfo
 from src.providers.validation import extract_publish_info_from_issue
 from src.providers.validation.models import PublishType, ValidationDict
@@ -181,8 +177,8 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
 
     issue_data = extract_publish_info_from_issue(
         {
-            "project_link": REMOVE_PLUGIN_MODULE_NAME_PATTERN,
-            "module_name": REMOVE_PROJECT_LINK_PATTERN,
+            "homepage": REMOVE_HOMEPAGE_PATTERN,
+            # "module_name": REMOVE_PROJECT_LINK_PATTERN,
         },
         issue.body or "",
     )
@@ -281,12 +277,12 @@ async def process_pr_and_issue_title(
     """
     根据发布信息合法性创建拉取请求或将请求改为草稿，并修改议题标题
     """
+    commit_message = f"{COMMIT_MESSAGE_PREFIX} {result.name} (#{issue_number})"
 
     if result.valid:
         run_shell_command(["git", "switch", "-C", branch_name])
         # 更新文件并提交更改
         update_file(result)
-        commit_message = f"{COMMIT_MESSAGE_PREFIX} {result.name} (#{issue_number})"
         commit_and_push(commit_message, branch_name, result.author)
         # 创建拉取请求
         await create_pull_request(

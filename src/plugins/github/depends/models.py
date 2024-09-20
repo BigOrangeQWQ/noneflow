@@ -5,6 +5,8 @@ from nonebot.adapters.github import Bot
 
 from githubkit.exception import RequestFailed
 
+from src.providers.validation.models import ValidationDict
+
 from .utils import run_shell_command
 from .constants import NONEFLOW_MARKER
 
@@ -17,6 +19,8 @@ class RepoInfo(BaseModel):
 
 
 class IssueHandler(BaseModel):
+    """Issue 的相关 Github/Git 操作"""
+
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     bot: Bot
@@ -60,6 +64,7 @@ class IssueHandler(BaseModel):
     async def create_pull_request(
         self, base_branch: str, title: str, branch_name: str, label: str
     ):
+        """创建拉取请求"""
         body = f"resolve #{self.issue_number}"
 
         try:
@@ -106,6 +111,9 @@ class IssueHandler(BaseModel):
                 logger.info("拉取请求已标记为可评审")
 
     async def comment_issue(self, comment: str):
+        """发布评论
+        若之前发布过评论，则修改之前的评论
+        """
         logger.info("开始发布评论")
 
         # 重复利用评论
@@ -139,3 +147,57 @@ class IssueHandler(BaseModel):
                 body=comment,
             )
             logger.info("评论创建完成")
+
+    async def pull_request_to_draft(self, branch_name: str):
+        """
+        将拉取请求转换为草稿
+        """
+        pulls = (
+            await self.bot.rest.pulls.async_list(
+                **self.repo_info.model_dump(),
+                head=f"{self.repo_info.owner}:{branch_name}",
+            )
+        ).parsed_data
+        if pulls and (pull := pulls[0]) and not pull.draft:
+            await self.bot.async_graphql(
+                query="""mutation convertPullRequestToDraft($pullRequestId: ID!) {
+                    convertPullRequestToDraft(input: {pullRequestId: $pullRequestId}) {
+                        clientMutationId
+                    }
+                }""",
+                variables={"pullRequestId": pull.node_id},
+            )
+            logger.info("删除没通过检查，已将之前的拉取请求转换为草稿")
+        else:
+            logger.info("没通过检查，暂不创建拉取请求")
+
+    async def change_issue_title(
+        self,
+        title: str,
+    ):
+        if self.issue.title != title:
+            await self.bot.rest.issues.async_update(
+                **self.repo_info.model_dump(),
+                issue_number=self.issue_number,
+                title=title,
+            )
+            logger.info(f"标题已修改为 {title}")
+
+    def switch_branch(self, branch_name: str):
+        run_shell_command(["git", "switch", "-C", branch_name])
+
+    async def change_issue_content(self, body: str):
+        """编辑议题内容"""
+        await self.bot.rest.issues.async_update(
+            **self.repo_info.model_dump(),
+            issue_number=self.issue_number,
+            body=body,
+        )
+        logger.info("议题内容已修改")
+
+    async def list_comments(self):
+        return (
+            await self.bot.rest.issues.async_list_comments(
+                **self.repo_info.model_dump(), issue_number=self.issue_number
+            )
+        ).parsed_data

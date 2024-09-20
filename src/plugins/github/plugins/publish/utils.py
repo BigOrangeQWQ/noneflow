@@ -344,46 +344,44 @@ async def create_pull_request(
             logger.info("拉取请求已标记为可评审")
 
 
-async def comment_issue(
-    bot: Bot, repo_info: RepoInfo, issue_number: int, result: ValidationDict
-):
-    """在议题中发布评论"""
-    logger.info("开始发布评论")
+# async def comment_issue(
+#     bot: Bot, repo_info: RepoInfo, issue_number: int, result: ValidationDict
+# ):
+#     """在议题中发布评论"""
+#     logger.info("开始发布评论")
 
-    # 重复利用评论
-    # 如果发现之前评论过，直接修改之前的评论
-    comments = (
-        await bot.rest.issues.async_list_comments(
-            **repo_info.model_dump(), issue_number=issue_number
-        )
-    ).parsed_data
-    reusable_comment = next(
-        filter(lambda x: NONEFLOW_MARKER in (x.body if x.body else ""), comments),
-        None,
-    )
+#     # 重复利用评论
+#     # 如果发现之前评论过，直接修改之前的评论
+#     comments = (
+#         await bot.rest.issues.async_list_comments(
+#             **repo_info.model_dump(), issue_number=issue_number
+#         )
+#     ).parsed_data
+# reusable_comment = next(
+#     filter(lambda x: NONEFLOW_MARKER in (x.body if x.body else ""), comments),
+#     None,
+# )
 
-    comment = await render_comment(result, bool(reusable_comment))
-    if reusable_comment:
-        logger.info(f"发现已有评论 {reusable_comment.id}，正在修改")
-        if reusable_comment.body != comment:
-            await bot.rest.issues.async_update_comment(
-                **repo_info.model_dump(), comment_id=reusable_comment.id, body=comment
-            )
-            logger.info("评论修改完成")
-        else:
-            logger.info("评论内容无变化，跳过修改")
-    else:
-        await bot.rest.issues.async_create_comment(
-            **repo_info.model_dump(), issue_number=issue_number, body=comment
-        )
-        logger.info("评论创建完成")
+#     if reusable_comment:
+#         logger.info(f"发现已有评论 {reusable_comment.id}，正在修改")
+#         if reusable_comment.body != comment:
+#             await bot.rest.issues.async_update_comment(
+#                 **repo_info.model_dump(), comment_id=reusable_comment.id, body=comment
+#             )
+#             logger.info("评论修改完成")
+#         else:
+#             logger.info("评论内容无变化，跳过修改")
+#     else:
+#         await bot.rest.issues.async_create_comment(
+#             **repo_info.model_dump(), issue_number=issue_number, body=comment
+#         )
+#         logger.info("评论创建完成")
 
 
-async def ensure_issue_content(
-    bot: Bot, repo_info: RepoInfo, issue_number: int, issue_body: str
-):
+async def ensure_issue_content(handler: IssueHandler):
     """确保议题内容中包含所需的插件信息"""
     new_content = []
+    issue_body = handler.issue.body or ""
 
     for name in PLUGIN_STRING_LIST:
         pattern = re.compile(ISSUE_FIELD_PATTERN.format(name))
@@ -392,36 +390,27 @@ async def ensure_issue_content(
 
     if new_content:
         new_content.append(issue_body)
-        await bot.rest.issues.async_update(
-            **repo_info.model_dump(),
-            issue_number=issue_number,
-            body="\n\n".join(new_content),
+        await handler.change_issue_content(
+            "\n\n".join(new_content),
         )
         logger.info("检测到议题内容缺失，已更新")
 
 
-async def ensure_issue_test_button(
-    bot: Bot, repo_info: RepoInfo, issue_number: int, issue_body: str
-):
+async def ensure_issue_test_button(handler: IssueHandler):
     """确保议题内容中包含插件重测按钮"""
+    issue_body = handler.issue.body or ""
+
     search_result = PLUGIN_TEST_BUTTON_PATTERN.search(issue_body)
     if not search_result:
         new_content = f"{ISSUE_FIELD_TEMPLATE.format(PLUGIN_TEST_STRING)}\n\n{PLUGIN_TEST_BUTTON_STRING}"
-        await bot.rest.issues.async_update(
-            **repo_info.model_dump(),
-            issue_number=issue_number,
-            body=f"{issue_body}\n\n{new_content}",
-        )
+
+        await handler.change_issue_content(f"{issue_body}\n\n{new_content}")
         logger.info("为议题添加插件重测按钮")
     elif search_result.group(1) == " ":
         new_content = issue_body.replace(
             search_result.group(0), PLUGIN_TEST_BUTTON_STRING
         )
-        await bot.rest.issues.async_update(
-            **repo_info.model_dump(),
-            issue_number=issue_number,
-            body=new_content,
-        )
+        await handler.change_issue_content(f"{new_content}")
         logger.info("选中议题的插件测试按钮")
 
 
@@ -445,48 +434,26 @@ async def process_pr_and_issue_title(
     """
     根据发布信息合法性创建拉取请求或将请求改为草稿，并修改议题标题
     """
-    bot = handler.bot
-    issue_number = handler.issue_number
-    repo_info = handler.repo_info
-    issue = handler.issue
-
     if result.valid:
-        run_shell_command(["git", "switch", "-C", branch_name])
-        # 更新文件并提交更改
+        commit_message = f"{COMMIT_MESSAGE_PREFIX} {result.type.value.lower()} {result.name} (#{handler.issue_number})"
+
+        handler.switch_branch(branch_name)
+        # 更新文件
         update_file(result)
-        commit_and_push(result, branch_name, issue_number)
+        handler.commit_and_push(commit_message, branch_name)
         # 创建拉取请求
-        await create_pull_request(
-            bot, repo_info, result, branch_name, issue_number, title
+        await handler.create_pull_request(
+            plugin_config.input_config.base, title, branch_name, result.type.value
         )
+
     else:
         # 如果之前已经创建了拉取请求，则将其转换为草稿
-        pulls = (
-            await bot.rest.pulls.async_list(
-                **repo_info.model_dump(), head=f"{repo_info.owner}:{branch_name}"
-            )
-        ).parsed_data
-        if pulls and (pull := pulls[0]) and not pull.draft:
-            await bot.async_graphql(
-                query="""mutation convertPullRequestToDraft($pullRequestId: ID!) {
-                    convertPullRequestToDraft(input: {pullRequestId: $pullRequestId}) {
-                        clientMutationId
-                    }
-                }""",
-                variables={"pullRequestId": pull.node_id},
-            )
-            logger.info("发布没通过检查，已将之前的拉取请求转换为草稿")
-        else:
-            logger.info("发布没通过检查，暂不创建拉取请求")
+        await handler.pull_request_to_draft(branch_name)
 
     # 修改议题标题
     # 需要等创建完拉取请求并打上标签后执行
     # 不然会因为修改议题触发 Actions 导致标签没有正常打上
-    if issue.title != title:
-        await bot.rest.issues.async_update(
-            **repo_info.model_dump(), issue_number=issue_number, title=title
-        )
-        logger.info(f"议题标题已修改为 {title}")
+    await handler.change_issue_title(title)
 
 
 async def trigger_registry_update(
