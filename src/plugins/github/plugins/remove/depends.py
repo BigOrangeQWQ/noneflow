@@ -27,7 +27,7 @@ from nonebot.adapters.github import (
 from githubkit.rest import Issue
 from nonebot.params import Depends
 
-from plugins.depends.utils import run_shell_command
+from plugins.github.depends.utils import run_shell_command
 
 from .constants import (
     COMMIT_MESSAGE_PREFIX,
@@ -35,10 +35,10 @@ from .constants import (
     REMOVE_PLUGIN_MODULE_NAME_PATTERN,
     REMOVE_PROJECT_LINK_PATTERN,
 )
-from src.plugins.depends.models import RepoInfo
+from src.plugins.github.depends.models import RepoInfo
 from src.providers.validation import extract_publish_info_from_issue
 from src.providers.validation.models import PublishType, ValidationDict
-from .. import plugin_config
+from src.plugins.github import plugin_config
 
 
 async def create_pull_request(
@@ -238,9 +238,6 @@ def update_file(result: ValidationDict):
         data.remove(result.data)
     with open(plugin_config.input_config.plugin_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
-
-
-# 验证成不成功，作者的信息，
 
 
 def commit_and_push(message: str, branch_name: str, author: str):

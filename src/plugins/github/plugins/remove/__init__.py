@@ -16,14 +16,14 @@ from .depends import (
     process_pr_and_issue_title,
     validate_author_info,
 )
-from src.plugins.depends import (
+from src.plugins.github.depends import (
     bypass_git,
     get_installation_id,
     get_issue_number,
     get_repo_info,
     install_pre_commit_hooks,
 )
-from src.plugins.depends import RepoInfo
+from src.plugins.github.depends import RepoInfo
 
 
 async def check_rule(

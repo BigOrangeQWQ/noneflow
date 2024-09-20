@@ -13,7 +13,9 @@ from tests.publish.utils import (
 async def test_validate_info_from_issue_adapter(
     app: App, mocker: MockerFixture, mocked_api: MockRouter
 ):
-    from src.plugins.github.publish.validation import validate_adapter_info_from_issue
+    from src.plugins.github.plugins.publish.validation import (
+        validate_adapter_info_from_issue,
+    )
 
     mock_issue = mocker.MagicMock()
     mock_issue.body = generate_issue_body_adapter()
@@ -28,7 +30,9 @@ async def test_validate_info_from_issue_adapter(
 async def test_validate_info_from_issue_bot(
     app: App, mocker: MockerFixture, mocked_api: MockRouter
 ):
-    from src.plugins.github.publish.validation import validate_bot_info_from_issue
+    from src.plugins.github.plugins.publish.validation import (
+        validate_bot_info_from_issue,
+    )
 
     mock_issue = mocker.MagicMock()
     mock_issue.body = generate_issue_body_bot()
@@ -43,7 +47,9 @@ async def test_validate_info_from_issue_bot(
 async def test_validate_info_from_issue_plugin(
     app: App, mocker: MockerFixture, mocked_api: MockRouter
 ):
-    from src.plugins.github.publish.validation import validate_plugin_info_from_issue
+    from src.plugins.github.plugins.publish.validation import (
+        validate_plugin_info_from_issue,
+    )
     from src.plugins.github import plugin_config
 
     mocker.patch.object(plugin_config, "skip_plugin_test", True)
@@ -61,7 +67,7 @@ async def test_validate_info_from_issue_plugin(
 # async def test_validate_info_from_issue_plugin_metadata(
 #     app: App, mocker: MockerFixture, mocked_api: MockRouter
 # ):
-#     from src.plugins.github.publish.validation import validate_plugin_info_from_issue
+#     from src.plugins.github.plugins.publish.validation import validate_plugin_info_from_issue
 #     from src.plugins.github import plugin_config
 
 #     mocker.patch.object(plugin_config, "skip_plugin_test", True)
@@ -89,7 +95,7 @@ async def test_validate_info_from_issue_plugin(
 # async def test_validate_info_from_issue_plugin_metadata_missing(
 #     app: App, mocker: MockerFixture, mocked_api: MockRouter
 # ):
-#     from src.plugins.github.publish.validation import validate_plugin_info_from_issue
+#     from src.plugins.github.plugins.publish.validation import validate_plugin_info_from_issue
 
 #     mock_issue = mocker.MagicMock()
 #     mock_issue.body = generate_issue_body_plugin()

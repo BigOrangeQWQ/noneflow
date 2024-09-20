@@ -5,7 +5,7 @@ from pytest_mock import MockFixture
 
 async def test_render_data_bot(app: App):
     """机器人验证数据"""
-    from src.plugins.github.publish.render import render_comment
+    from src.plugins.github.plugins.publish.render import render_comment
     from src.providers.validation import PublishType, ValidationDict
 
     result = ValidationDict(
@@ -97,7 +97,7 @@ async def test_render_data_bot(app: App):
 
 async def test_render_data_adapter(app: App):
     """适配器数据"""
-    from src.plugins.github.publish.render import render_comment
+    from src.plugins.github.plugins.publish.render import render_comment
     from src.providers.validation import PublishType, ValidationDict
 
     result = ValidationDict(
@@ -147,7 +147,7 @@ async def test_render_data_adapter(app: App):
 
 async def test_render_data_plugin(app: App, mocker: MockFixture):
     """插件数据"""
-    from src.plugins.github.publish.render import render_comment
+    from src.plugins.github.plugins.publish.render import render_comment
     from src.providers.validation import PublishType, ValidationDict
 
     result = ValidationDict(
@@ -199,7 +199,7 @@ async def test_render_data_plugin(app: App, mocker: MockFixture):
 
 async def test_render_data_plugin_supported_adapters(app: App, mocker: MockFixture):
     """插件支持的适配器"""
-    from src.plugins.github.publish.render import render_comment
+    from src.plugins.github.plugins.publish.render import render_comment
     from src.providers.validation import PublishType, ValidationDict
 
     result = ValidationDict(

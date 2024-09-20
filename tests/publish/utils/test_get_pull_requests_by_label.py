@@ -9,8 +9,8 @@ from pytest_mock import MockerFixture
 
 async def test_get_pull_requests_by_label(app: App, mocker: MockerFixture) -> None:
     """测试获取指定标签的拉取请求"""
-    from src.plugins.github.publish.depends import get_pull_requests_by_label
-    from src.plugins.depends.models import RepoInfo
+    from src.plugins.github.plugins.publish.depends import get_pull_requests_by_label
+    from src.plugins.github.depends.models import RepoInfo
     from src.providers.validation.models import PublishType
 
     mock_label = mocker.MagicMock()
@@ -47,8 +47,8 @@ async def test_get_pull_requests_by_label_not_match(
     app: App, mocker: MockerFixture
 ) -> None:
     """测试获取指定标签的拉取请求，但是没有匹配的"""
-    from src.plugins.github.publish.depends import get_pull_requests_by_label
-    from src.plugins.depends.models import RepoInfo
+    from src.plugins.github.plugins.publish.depends import get_pull_requests_by_label
+    from src.plugins.github.depends.models import RepoInfo
     from src.providers.validation.models import PublishType
 
     mock_label = mocker.MagicMock()

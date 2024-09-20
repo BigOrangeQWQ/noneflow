@@ -20,7 +20,7 @@ async def test_resolve_conflict_pull_requests_adapter(
     app: App, mocker: MockerFixture, mocked_api: MockRouter, tmp_path: Path
 ) -> None:
     from src.plugins.github import plugin_config
-    from src.plugins.github.publish.utils import resolve_conflict_pull_requests
+    from src.plugins.github.plugins.publish.utils import resolve_conflict_pull_requests
 
     mock_subprocess_run = mocker.patch("subprocess.run")
     mock_result = mocker.MagicMock()
@@ -146,7 +146,7 @@ async def test_resolve_conflict_pull_requests_bot(
     app: App, mocker: MockerFixture, mocked_api: MockRouter, tmp_path: Path
 ) -> None:
     from src.plugins.github import plugin_config
-    from src.plugins.github.publish.utils import resolve_conflict_pull_requests
+    from src.plugins.github.plugins.publish.utils import resolve_conflict_pull_requests
 
     mock_subprocess_run = mocker.patch("subprocess.run")
     mock_result = mocker.MagicMock()
@@ -266,7 +266,7 @@ async def test_resolve_conflict_pull_requests_plugin(
     app: App, mocker: MockerFixture, mocked_api: MockRouter, tmp_path: Path
 ) -> None:
     from src.plugins.github import plugin_config
-    from src.plugins.github.publish.utils import resolve_conflict_pull_requests
+    from src.plugins.github.plugins.publish.utils import resolve_conflict_pull_requests
 
     mock_subprocess_run = mocker.patch("subprocess.run")
     mock_result = mocker.MagicMock()
@@ -385,7 +385,7 @@ async def test_resolve_conflict_pull_requests_draft(
     app: App, mocker: MockerFixture, mocked_api: MockRouter, tmp_path: Path
 ) -> None:
     from src.plugins.github import plugin_config
-    from src.plugins.github.publish.utils import resolve_conflict_pull_requests
+    from src.plugins.github.plugins.publish.utils import resolve_conflict_pull_requests
 
     mock_subprocess_run = mocker.patch("subprocess.run")
     mock_result = mocker.MagicMock()
@@ -451,7 +451,7 @@ async def test_resolve_conflict_pull_requests_ref(
     app: App, mocker: MockerFixture, mocked_api: MockRouter, tmp_path: Path
 ) -> None:
     from src.plugins.github import plugin_config
-    from src.plugins.github.publish.utils import resolve_conflict_pull_requests
+    from src.plugins.github.plugins.publish.utils import resolve_conflict_pull_requests
 
     mock_subprocess_run = mocker.patch("subprocess.run")
     mock_result = mocker.MagicMock()

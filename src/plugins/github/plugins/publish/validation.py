@@ -13,7 +13,8 @@ from src.providers.constants import DOCKER_IMAGES
 from src.providers.docker_test import DockerPluginTest
 from src.providers.store_test.models import DockerTestResult, Metadata
 
-from .. import plugin_config
+from src.plugins.github import plugin_config
+
 from .constants import (
     ADAPTER_DESC_PATTERN,
     ADAPTER_HOMEPAGE_PATTERN,

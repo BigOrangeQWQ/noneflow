@@ -8,16 +8,17 @@ from githubkit.typing import Missing
 from nonebot import logger
 from nonebot.adapters.github import Bot, GitHubBot
 
-from src.plugins.depends.models import IssueHandler
+from src.plugins.github.depends.models import IssueHandler
 
 from .validation import validate_plugin_info_from_issue
 from src.providers.validation import (
     PublishType,
     ValidationDict,
 )
-from src.plugins.depends import RepoInfo
+from src.plugins.github.depends import RepoInfo
 
-from .. import plugin_config
+from src.plugins.github import plugin_config
+
 from .constants import (
     BRANCH_NAME_PREFIX,
     COMMIT_MESSAGE_PREFIX,

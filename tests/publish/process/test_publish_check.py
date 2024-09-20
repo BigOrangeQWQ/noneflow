@@ -32,7 +32,7 @@ async def test_process_publish_check(
     app: App, mocker: MockerFixture, mocked_api: MockRouter, tmp_path: Path
 ) -> None:
     """测试一个正常的发布流程"""
-    from src.plugins.github.publish import publish_check_matcher
+    from src.plugins.github.plugins.publish import publish_check_matcher
     from src.plugins.github import plugin_config
 
     mock_subprocess_run = mocker.patch(
@@ -238,7 +238,7 @@ async def test_edit_title(
 
     名称被修改后，标题也应该被修改
     """
-    from src.plugins.github.publish import publish_check_matcher
+    from src.plugins.github.plugins.publish import publish_check_matcher
     from src.plugins.github import plugin_config
 
     mock_subprocess_run = mocker.patch(
@@ -470,7 +470,7 @@ async def test_edit_title_too_long(
 
     标题过长的情况
     """
-    from src.plugins.github.publish import publish_check_matcher
+    from src.plugins.github.plugins.publish import publish_check_matcher
     from src.plugins.github import plugin_config
 
     mock_subprocess_run = mocker.patch(
@@ -617,7 +617,7 @@ async def test_process_publish_check_not_pass(
     app: App, mocker: MockerFixture, mocked_api: MockRouter, tmp_path: Path
 ) -> None:
     """测试发布检查不通过"""
-    from src.plugins.github.publish import publish_check_matcher
+    from src.plugins.github.plugins.publish import publish_check_matcher
     from src.plugins.github import plugin_config
 
     mock_subprocess_run = mocker.patch(
@@ -759,7 +759,7 @@ async def test_comment_at_pull_request(
 
     event.issue.pull_request 不为空
     """
-    from src.plugins.github.publish import publish_check_matcher
+    from src.plugins.github.plugins.publish import publish_check_matcher
 
     mock_subprocess_run = mocker.patch(
         "subprocess.run", side_effect=lambda *args, **kwargs: mocker.MagicMock()
@@ -790,7 +790,7 @@ async def test_issue_state_closed(
 
     event.issue.state = "closed"
     """
-    from src.plugins.github.publish import publish_check_matcher
+    from src.plugins.github.plugins.publish import publish_check_matcher
 
     mock_subprocess_run = mocker.patch(
         "subprocess.run", side_effect=lambda *args, **kwargs: mocker.MagicMock()
@@ -856,7 +856,7 @@ async def test_not_publish_issue(
 
     议题的标签不是 "Bot/Adapter/Plugin"
     """
-    from src.plugins.github.publish import publish_check_matcher
+    from src.plugins.github.plugins.publish import publish_check_matcher
 
     mock_subprocess_run = mocker.patch(
         "subprocess.run", side_effect=lambda *args, **kwargs: mocker.MagicMock()
@@ -884,7 +884,7 @@ async def test_comment_by_self(
     app: App, mocker: MockerFixture, mocked_api: MockRouter
 ) -> None:
     """测试自己评论触发的情况"""
-    from src.plugins.github.publish import publish_check_matcher
+    from src.plugins.github.plugins.publish import publish_check_matcher
 
     mock_subprocess_run = mocker.patch(
         "subprocess.run", side_effect=lambda *args, **kwargs: mocker.MagicMock()
@@ -911,7 +911,7 @@ async def test_skip_plugin_check(
     app: App, mocker: MockerFixture, mocked_api: MockRouter, tmp_path: Path
 ) -> None:
     """测试手动跳过插件测试的流程"""
-    from src.plugins.github.publish import publish_check_matcher
+    from src.plugins.github.plugins.publish import publish_check_matcher
     from src.plugins.github import plugin_config
 
     mock_subprocess_run = mocker.patch(
@@ -1110,7 +1110,7 @@ async def test_convert_pull_request_to_draft(
     app: App, mocker: MockerFixture, mocked_api: MockRouter, tmp_path: Path
 ) -> None:
     """未通过时将拉取请求转换为草稿"""
-    from src.plugins.github.publish import publish_check_matcher
+    from src.plugins.github.plugins.publish import publish_check_matcher
     from src.plugins.github import plugin_config
 
     mock_subprocess_run = mocker.patch(
@@ -1269,7 +1269,7 @@ async def test_process_publish_check_ready_for_review(
     app: App, mocker: MockerFixture, mocked_api: MockRouter, tmp_path: Path
 ) -> None:
     """当之前失败后再次通过测试时，应该将拉取请求标记为 ready for review"""
-    from src.plugins.github.publish import publish_check_matcher
+    from src.plugins.github.plugins.publish import publish_check_matcher
     from src.plugins.github import plugin_config
 
     mock_subprocess_run = mocker.patch(

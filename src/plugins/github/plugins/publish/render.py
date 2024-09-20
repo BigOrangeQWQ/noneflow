@@ -3,7 +3,8 @@ from pathlib import Path
 import jinja2
 from src.providers.validation.models import PublishType
 
-from .. import plugin_config
+from src.plugins.github import plugin_config
+
 from .constants import LOC_NAME_MAP
 from src.providers.validation import ValidationDict
 

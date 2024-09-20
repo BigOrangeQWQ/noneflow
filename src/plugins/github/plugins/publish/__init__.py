@@ -11,7 +11,7 @@ from nonebot.adapters.github import (
 )
 from nonebot.params import Depends
 
-from src.plugins.depends import (
+from src.plugins.github.depends import (
     bypass_git,
     get_installation_id,
     get_issue_number,
@@ -19,10 +19,10 @@ from src.plugins.depends import (
     get_related_issue_number,
     install_pre_commit_hooks,
 )
-from src.plugins.depends.models import IssueHandler, RepoInfo
+from src.plugins.github.depends.models import IssueHandler, RepoInfo
 from src.providers.validation.models import PublishType
 
-from .. import plugin_config
+from src.plugins.github import plugin_config
 
 from .constants import BOT_MARKER, BRANCH_NAME_PREFIX, TITLE_MAX_LENGTH
 from .depends import (
