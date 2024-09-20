@@ -233,9 +233,14 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
 
 
 def update_file(result: ValidationDict):
+    logger.info("开始更新文件")
+    data = []
     with open(plugin_config.input_config.plugin_path, "r", encoding="utf-8") as f:
         data = json.load(f)
-        data.remove(result.data)
+        for item in data:
+            if item == result.data:
+                data.remove(item)
+                break
     with open(plugin_config.input_config.plugin_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
@@ -280,7 +285,8 @@ async def process_pr_and_issue_title(
     if result.valid:
         run_shell_command(["git", "switch", "-C", branch_name])
         # 更新文件并提交更改
-        commit_message = f"{COMMIT_MESSAGE_PREFIX} {result.valid} (#{issue_number})"
+        update_file(result)
+        commit_message = f"{COMMIT_MESSAGE_PREFIX} {result.name} (#{issue_number})"
         commit_and_push(commit_message, branch_name, "")
         # 创建拉取请求
         await create_pull_request(
