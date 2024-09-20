@@ -219,7 +219,7 @@ async def validate_author_info(issue: Issue) -> ValidationDict:
                     valid=True,
                     data=item,
                     type=type,
-                    name=item.get("name") or "",
+                    name=item.get("name") or item.get("module_name") or "",
                     author=author,
                     errors=[],
                 )
@@ -287,7 +287,7 @@ async def process_pr_and_issue_title(
         # 更新文件并提交更改
         update_file(result)
         commit_message = f"{COMMIT_MESSAGE_PREFIX} {result.name} (#{issue_number})"
-        commit_and_push(commit_message, branch_name, "")
+        commit_and_push(commit_message, branch_name, result.author)
         # 创建拉取请求
         await create_pull_request(
             bot, repo_info, result, branch_name, issue_number, title
