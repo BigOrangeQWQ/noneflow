@@ -34,6 +34,7 @@ async def check_rule(
     is_bot: bool = Depends(is_bot_triggered_workflow),
 ) -> bool:
     if is_bot:
+        logger.info("机器人触发的工作流，已跳过")
         return False
     if event.payload.issue.pull_request:
         logger.info("评论在拉取请求下，已跳过")

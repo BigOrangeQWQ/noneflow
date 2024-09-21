@@ -107,3 +107,4 @@ def is_bot_triggered_workflow(
     ):
         logger.info("议题修改来自机器人，已跳过")
         return True
+    return False
