@@ -12,7 +12,9 @@ from nonebot.params import Depends
 
 from src.plugins.github.constants import BOT_MARKER
 from src.plugins.github.models import RepoInfo
-from .utils import extract_issue_number_from_ref, run_shell_command
+from src.plugins.github.utils import run_shell_command
+
+from .utils import extract_issue_number_from_ref
 
 
 def bypass_git():

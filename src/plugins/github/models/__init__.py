@@ -5,8 +5,8 @@ from nonebot.adapters.github import Bot
 
 from githubkit.exception import RequestFailed
 
-from ..depends.utils import run_shell_command
-from ..depends.constants import NONEFLOW_MARKER
+from src.plugins.github.constants import NONEFLOW_MARKER
+from src.plugins.github.utils import run_shell_command
 
 
 class RepoInfo(BaseModel):
