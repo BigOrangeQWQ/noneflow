@@ -81,7 +81,7 @@ async def handle_remove_check(
             await handler.comment_issue(await render_error(err))
             await remove_check_matcher.finish()
 
-        title = f"{result.type}: {result.name}"
+        title = f"{result.type}: Remove {result.name}"
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
 
         # 处理拉取请求和议题标题
