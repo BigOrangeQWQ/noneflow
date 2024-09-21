@@ -11,6 +11,8 @@ from nonebot.adapters.github import (
 )
 from nonebot.params import Depends
 
+from src.providers.validation.models import PublishType
+
 from src.plugins.github.plugins.publish.render import render_comment
 from src.plugins.github.depends import (
     bypass_git,
@@ -19,13 +21,12 @@ from src.plugins.github.depends import (
     get_repo_info,
     get_related_issue_number,
     install_pre_commit_hooks,
+    is_bot_triggered_workflow,
 )
-from src.plugins.github.depends.models import IssueHandler, RepoInfo
-from src.providers.validation.models import PublishType
-
+from src.plugins.github.models import IssueHandler, RepoInfo
 from src.plugins.github import plugin_config
 
-from .constants import BOT_MARKER, BRANCH_NAME_PREFIX, TITLE_MAX_LENGTH
+from .constants import BRANCH_NAME_PREFIX, TITLE_MAX_LENGTH
 from .depends import (
     get_pull_requests_by_label,
     get_type_by_labels,
@@ -128,27 +129,16 @@ async def handle_pr_close(
 async def check_rule(
     event: IssuesOpened | IssuesReopened | IssuesEdited | IssueCommentCreated,
     publish_type: PublishType | None = Depends(get_type_by_labels),
+    is_bot: bool = Depends(is_bot_triggered_workflow),
 ) -> bool:
-    if (
-        isinstance(event, IssueCommentCreated)
-        and event.payload.comment.user
-        and event.payload.comment.user.login.endswith(BOT_MARKER)
-    ):
-        logger.info("评论来自机器人，已跳过")
-        return False
-    if (
-        isinstance(event, IssuesEdited)
-        and event.payload.sender.login
-        and event.payload.sender.login.endswith(BOT_MARKER)
-    ):
-        logger.info("议题修改来自机器人，已跳过")
+    if is_bot:
         return False
     if event.payload.issue.pull_request:
         logger.info("评论在拉取请求下，已跳过")
         return False
     if not publish_type:
         logger.info("议题与发布无关，已跳过")
-        await publish_check_matcher.finish()
+        return False
 
     return True
 

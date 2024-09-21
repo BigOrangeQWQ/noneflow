@@ -1,3 +1,4 @@
+from nonebot import logger
 from nonebot.adapters.github import (
     GitHubBot,
     IssueCommentCreated,
@@ -9,8 +10,10 @@ from nonebot.adapters.github import (
 )
 from nonebot.params import Depends
 
+from src.plugins.github.constants import BOT_MARKER
+
 from .utils import extract_issue_number_from_ref, run_shell_command
-from .models import RepoInfo
+from ..models import RepoInfo
 
 
 def bypass_git():
@@ -83,3 +86,23 @@ def get_related_issue_number(event: PullRequestClosed) -> int | None:
     ref = event.payload.pull_request.head.ref
     related_issue_number = extract_issue_number_from_ref(ref)
     return related_issue_number
+
+
+def is_bot_triggered_workflow(
+    event: IssuesOpened | IssuesReopened | IssuesEdited | IssueCommentCreated,
+):
+    """触发议题相关的工作流"""
+    if (
+        isinstance(event, IssueCommentCreated)
+        and event.payload.comment.user
+        and event.payload.comment.user.login.endswith(BOT_MARKER)
+    ):
+        logger.info("评论来自机器人，已跳过")
+        return True
+    if (
+        isinstance(event, IssuesEdited)
+        and event.payload.sender.login
+        and event.payload.sender.login.endswith(BOT_MARKER)
+    ):
+        logger.info("议题修改来自机器人，已跳过")
+        return True

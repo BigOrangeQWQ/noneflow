@@ -154,23 +154,23 @@ async def test_store_test(
     assert mocked_api["project_link_datastore"].called
 
     assert (
-        mocked_store_data["results"].read_text(encoding="utf8")
+        mocked_store_data["results"].read_text(encoding="utf-8")
         == '{"nonebot-plugin-datastore:nonebot_plugin_datastore":{"time":"2023-06-26T22:08:18.945584+08:00","version":"1.0.0","results":{"validation":true,"load":true,"metadata":true},"inputs":{"config":""},"outputs":{"validation":"通过","load":"datastore","metadata":{"name":"数据存储","description":"NoneBot 数据存储插件","usage":"请参考文档","type":"library","homepage":"https://github.com/he0119/nonebot-plugin-datastore","supported_adapters":null}}},"nonebot-plugin-treehelp:nonebot_plugin_treehelp":{"time":"2023-08-28T00:00:00.000000+08:00","version":"1.0.0","inputs":{"config":""},"results":{"load":true,"metadata":true,"validation":true},"outputs":{"load":"output","metadata":{"name":"帮助","description":"获取插件帮助信息","usage":"获取插件列表\\n/help\\n获取插件树\\n/help -t\\n/help --tree\\n获取某个插件的帮助\\n/help 插件名\\n获取某个插件的树\\n/help --tree 插件名\\n","type":"application","homepage":"https://nonebot.dev/","supported_adapters":null},"validation":null}}}'
     )
     assert (
-        mocked_store_data["adapters"].read_text(encoding="utf8")
+        mocked_store_data["adapters"].read_text(encoding="utf-8")
         == '[{"module_name":"nonebot.adapters.onebot.v11","project_link":"nonebot-adapter-onebot","name":"OneBot V11","desc":"OneBot V11 协议","author":"yanyongyu","homepage":"https://onebot.adapters.nonebot.dev/","tags":[],"is_official":true}]'
     )
     assert (
-        mocked_store_data["bots"].read_text(encoding="utf8")
+        mocked_store_data["bots"].read_text(encoding="utf-8")
         == '[{"name":"CoolQBot","desc":"基于 NoneBot2 的聊天机器人","author":"he0119","homepage":"https://github.com/he0119/CoolQBot","tags":[],"is_official":false}]'
     )
     assert (
-        mocked_store_data["drivers"].read_text(encoding="utf8")
+        mocked_store_data["drivers"].read_text(encoding="utf-8")
         == '[{"module_name":"~none","project_link":"","name":"None","desc":"None 驱动器","author":"yanyongyu","homepage":"/docs/advanced/driver","tags":[],"is_official":true},{"module_name":"~fastapi","project_link":"nonebot2[fastapi]","name":"FastAPI","desc":"FastAPI 驱动器","author":"yanyongyu","homepage":"/docs/advanced/driver","tags":[],"is_official":true}]'
     )
     assert (
-        mocked_store_data["plugins"].read_text(encoding="utf8")
+        mocked_store_data["plugins"].read_text(encoding="utf-8")
         == '[{"module_name":"nonebot_plugin_datastore","project_link":"nonebot-plugin-datastore","name":"数据存储","desc":"NoneBot 数据存储插件","author":"he0119","homepage":"https://github.com/he0119/nonebot-plugin-datastore","tags":[],"is_official":false,"type":"library","supported_adapters":null,"valid":true,"time":"2023-06-22 11:58:18"},{"name":"帮助","module_name":"module_name","author":"author","version":"0.3.0","desc":"获取插件帮助信息","homepage":"https://nonebot.dev/","project_link":"project_link","tags":[],"supported_adapters":null,"type":"application","time":"2023-08-28T00:00:00.000000+08:00","is_official":true,"valid":true,"skip_test":false}]'
     )
 
@@ -338,23 +338,23 @@ async def test_store_test_raise(
 
     # 数据没有更新，只是被压缩
     assert (
-        mocked_store_data["results"].read_text(encoding="utf8")
+        mocked_store_data["results"].read_text(encoding="utf-8")
         == '{"nonebot-plugin-datastore:nonebot_plugin_datastore":{"time":"2023-06-26T22:08:18.945584+08:00","version":"1.0.0","results":{"validation":true,"load":true,"metadata":true},"inputs":{"config":""},"outputs":{"validation":"通过","load":"datastore","metadata":{"name":"数据存储","description":"NoneBot 数据存储插件","usage":"请参考文档","type":"library","homepage":"https://github.com/he0119/nonebot-plugin-datastore","supported_adapters":null}}},"nonebot-plugin-treehelp:nonebot_plugin_treehelp":{"time":"2023-06-26T22:20:41.833311+08:00","version":"0.3.0","results":{"validation":true,"load":true,"metadata":true},"inputs":{"config":"TEST_CONFIG=true"},"outputs":{"validation":"通过","load":"treehelp","metadata":{"name":"帮助","description":"获取插件帮助信息","usage":"获取插件列表\\n/help\\n获取插件树\\n/help -t\\n/help --tree\\n获取某个插件的帮助\\n/help 插件名\\n获取某个插件的树\\n/help --tree 插件名\\n","type":"application","homepage":"https://github.com/he0119/nonebot-plugin-treehelp","supported_adapters":null}}}}'
     )
     assert (
-        mocked_store_data["adapters"].read_text(encoding="utf8")
+        mocked_store_data["adapters"].read_text(encoding="utf-8")
         == '[{"module_name":"nonebot.adapters.onebot.v11","project_link":"nonebot-adapter-onebot","name":"OneBot V11","desc":"OneBot V11 协议","author":"yanyongyu","homepage":"https://onebot.adapters.nonebot.dev/","tags":[],"is_official":true}]'
     )
     assert (
-        mocked_store_data["bots"].read_text(encoding="utf8")
+        mocked_store_data["bots"].read_text(encoding="utf-8")
         == '[{"name":"CoolQBot","desc":"基于 NoneBot2 的聊天机器人","author":"he0119","homepage":"https://github.com/he0119/CoolQBot","tags":[],"is_official":false}]'
     )
     assert (
-        mocked_store_data["drivers"].read_text(encoding="utf8")
+        mocked_store_data["drivers"].read_text(encoding="utf-8")
         == '[{"module_name":"~none","project_link":"","name":"None","desc":"None 驱动器","author":"yanyongyu","homepage":"/docs/advanced/driver","tags":[],"is_official":true},{"module_name":"~fastapi","project_link":"nonebot2[fastapi]","name":"FastAPI","desc":"FastAPI 驱动器","author":"yanyongyu","homepage":"/docs/advanced/driver","tags":[],"is_official":true}]'
     )
     assert (
-        mocked_store_data["plugins"].read_text(encoding="utf8")
+        mocked_store_data["plugins"].read_text(encoding="utf-8")
         == '[{"module_name":"nonebot_plugin_datastore","project_link":"nonebot-plugin-datastore","name":"数据存储","desc":"NoneBot 数据存储插件","author":"he0119","homepage":"https://github.com/he0119/nonebot-plugin-datastore","tags":[],"is_official":false,"type":"library","supported_adapters":null,"valid":true,"time":"2023-06-22 11:58:18"},{"module_name":"nonebot_plugin_treehelp","project_link":"nonebot-plugin-treehelp","name":"帮助","desc":"获取插件帮助信息","author":"he0119","homepage":"https://github.com/he0119/nonebot-plugin-treehelp","tags":[],"is_official":false,"type":"application","supported_adapters":null,"valid":true,"time":"2023-06-22 12:10:18"}]'
     )
 
@@ -389,22 +389,22 @@ async def test_store_test_with_key_raise(
 
     # 数据没有更新，只是被压缩
     assert (
-        mocked_store_data["results"].read_text(encoding="utf8")
+        mocked_store_data["results"].read_text(encoding="utf-8")
         == '{"nonebot-plugin-datastore:nonebot_plugin_datastore":{"time":"2023-06-26T22:08:18.945584+08:00","version":"1.0.0","results":{"validation":true,"load":true,"metadata":true},"inputs":{"config":""},"outputs":{"validation":"通过","load":"datastore","metadata":{"name":"数据存储","description":"NoneBot 数据存储插件","usage":"请参考文档","type":"library","homepage":"https://github.com/he0119/nonebot-plugin-datastore","supported_adapters":null}}},"nonebot-plugin-treehelp:nonebot_plugin_treehelp":{"time":"2023-06-26T22:20:41.833311+08:00","version":"0.3.0","results":{"validation":true,"load":true,"metadata":true},"inputs":{"config":"TEST_CONFIG=true"},"outputs":{"validation":"通过","load":"treehelp","metadata":{"name":"帮助","description":"获取插件帮助信息","usage":"获取插件列表\\n/help\\n获取插件树\\n/help -t\\n/help --tree\\n获取某个插件的帮助\\n/help 插件名\\n获取某个插件的树\\n/help --tree 插件名\\n","type":"application","homepage":"https://github.com/he0119/nonebot-plugin-treehelp","supported_adapters":null}}}}'
     )
     assert (
-        mocked_store_data["adapters"].read_text(encoding="utf8")
+        mocked_store_data["adapters"].read_text(encoding="utf-8")
         == '[{"module_name":"nonebot.adapters.onebot.v11","project_link":"nonebot-adapter-onebot","name":"OneBot V11","desc":"OneBot V11 协议","author":"yanyongyu","homepage":"https://onebot.adapters.nonebot.dev/","tags":[],"is_official":true}]'
     )
     assert (
-        mocked_store_data["bots"].read_text(encoding="utf8")
+        mocked_store_data["bots"].read_text(encoding="utf-8")
         == '[{"name":"CoolQBot","desc":"基于 NoneBot2 的聊天机器人","author":"he0119","homepage":"https://github.com/he0119/CoolQBot","tags":[],"is_official":false}]'
     )
     assert (
-        mocked_store_data["drivers"].read_text(encoding="utf8")
+        mocked_store_data["drivers"].read_text(encoding="utf-8")
         == '[{"module_name":"~none","project_link":"","name":"None","desc":"None 驱动器","author":"yanyongyu","homepage":"/docs/advanced/driver","tags":[],"is_official":true},{"module_name":"~fastapi","project_link":"nonebot2[fastapi]","name":"FastAPI","desc":"FastAPI 驱动器","author":"yanyongyu","homepage":"/docs/advanced/driver","tags":[],"is_official":true}]'
     )
     assert (
-        mocked_store_data["plugins"].read_text(encoding="utf8")
+        mocked_store_data["plugins"].read_text(encoding="utf-8")
         == '[{"module_name":"nonebot_plugin_datastore","project_link":"nonebot-plugin-datastore","name":"数据存储","desc":"NoneBot 数据存储插件","author":"he0119","homepage":"https://github.com/he0119/nonebot-plugin-datastore","tags":[],"is_official":false,"type":"library","supported_adapters":null,"valid":true,"time":"2023-06-22 11:58:18"},{"module_name":"nonebot_plugin_treehelp","project_link":"nonebot-plugin-treehelp","name":"帮助","desc":"获取插件帮助信息","author":"he0119","homepage":"https://github.com/he0119/nonebot-plugin-treehelp","tags":[],"is_official":false,"type":"application","supported_adapters":null,"valid":true,"time":"2023-06-22 12:10:18"}]'
     )

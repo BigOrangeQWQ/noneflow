@@ -5,10 +5,8 @@ from nonebot.adapters.github import Bot
 
 from githubkit.exception import RequestFailed
 
-from src.providers.validation.models import ValidationDict
-
-from .utils import run_shell_command
-from .constants import NONEFLOW_MARKER
+from ..depends.utils import run_shell_command
+from ..depends.constants import NONEFLOW_MARKER
 
 
 class RepoInfo(BaseModel):
@@ -171,7 +169,7 @@ class IssueHandler(BaseModel):
         else:
             logger.info("没通过检查，暂不创建拉取请求")
 
-    async def change_issue_title(
+    async def update_issue_title(
         self,
         title: str,
     ):
@@ -184,6 +182,7 @@ class IssueHandler(BaseModel):
             logger.info(f"标题已修改为 {title}")
 
     def switch_branch(self, branch_name: str):
+        """切换分支"""
         run_shell_command(["git", "switch", "-C", branch_name])
 
     async def change_issue_content(self, body: str):

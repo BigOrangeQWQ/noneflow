@@ -8,23 +8,22 @@ from githubkit.typing import Missing
 from nonebot import logger
 from nonebot.adapters.github import Bot, GitHubBot
 
-from src.plugins.github.depends.models import IssueHandler
-
-from .validation import validate_plugin_info_from_issue
+from src.plugins.github.models import IssueHandler
 from src.providers.validation import (
     PublishType,
     ValidationDict,
 )
 from src.plugins.github.depends import RepoInfo
-
 from src.plugins.github import plugin_config
+
+
+from .validation import validate_plugin_info_from_issue
 
 from .constants import (
     BRANCH_NAME_PREFIX,
     COMMIT_MESSAGE_PREFIX,
     ISSUE_FIELD_PATTERN,
     ISSUE_FIELD_TEMPLATE,
-    NONEFLOW_MARKER,
     PLUGIN_CONFIG_PATTERN,
     PLUGIN_MODULE_NAME_PATTERN,
     PLUGIN_STRING_LIST,
@@ -34,7 +33,6 @@ from .constants import (
     PROJECT_LINK_PATTERN,
     SKIP_PLUGIN_TEST_COMMENT,
 )
-from .render import render_comment
 
 if TYPE_CHECKING:
     from githubkit.rest import (
@@ -453,7 +451,7 @@ async def process_pr_and_issue_title(
     # 修改议题标题
     # 需要等创建完拉取请求并打上标签后执行
     # 不然会因为修改议题触发 Actions 导致标签没有正常打上
-    await handler.change_issue_title(title)
+    await handler.update_issue_title(title)
 
 
 async def trigger_registry_update(

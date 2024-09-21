@@ -21,7 +21,7 @@ def dump_json(path: Path, data: Any):
 
     为减少文件大小，还需手动设置 separators
     """
-    with open(path, "w", encoding="utf8") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(
             to_jsonable_python(data), f, ensure_ascii=False, separators=(",", ":")
         )

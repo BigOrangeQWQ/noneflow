@@ -5,7 +5,7 @@
 #     """poetry show 的输出"""
 #     from src.providers.store_test.validation import extract_version
 
-#     with open(tmp_path / "output.txt", "w", encoding="utf8") as f:
+#     with open(tmp_path / "output.txt", "w", encoding="utf-8") as f:
 #         f.write(
 #             """
 #  name         : nonebot2
@@ -35,7 +35,7 @@
 #     """版本解析失败的情况"""
 #     from src.providers.store_test.validation import extract_version
 
-#     with open(tmp_path / "output.txt", "w", encoding="utf8") as f:
+#     with open(tmp_path / "output.txt", "w", encoding="utf-8") as f:
 #         f.write(
 #             """
 # 项目 nonebot-plugin-mockingbird 创建失败：

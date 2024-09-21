@@ -133,7 +133,7 @@ else:
             "homepage": plugin.metadata.homepage,
             "supported_adapters": plugin.metadata.supported_adapters,
         }}
-        with open("metadata.json", "w", encoding="utf8") as f:
+        with open("metadata.json", "w", encoding="utf-8") as f:
             f.write(f"{{json.dumps(metadata, cls=SetEncoder)}}")
 
         if plugin.metadata.config and not issubclass(plugin.metadata.config, BaseModel):
@@ -260,7 +260,7 @@ class PluginTest:
         metadata = {}
         metadata_path = self.path / "metadata.json"
         if metadata_path.exists():
-            with open(self.path / "metadata.json", "r", encoding="utf8") as f:
+            with open(self.path / "metadata.json", "r", encoding="utf-8") as f:
                 metadata = json.load(f)
 
         # 输出测试结果
@@ -350,17 +350,17 @@ class PluginTest:
         """运行插件"""
         if self.path.exists():
             # 默认使用 fake 驱动
-            with open(self.path / ".env", "w", encoding="utf8") as f:
+            with open(self.path / ".env", "w", encoding="utf-8") as f:
                 f.write("DRIVER=fake")
             # 如果提供了插件配置项，则写入配置文件
             if self.config is not None:
-                with open(self.path / ".env.prod", "w", encoding="utf8") as f:
+                with open(self.path / ".env.prod", "w", encoding="utf-8") as f:
                     f.write(self.config)
 
-            with open(self.path / "fake.py", "w", encoding="utf8") as f:
+            with open(self.path / "fake.py", "w", encoding="utf-8") as f:
                 f.write(FAKE_SCRIPT)
 
-            with open(self.path / "runner.py", "w", encoding="utf8") as f:
+            with open(self.path / "runner.py", "w", encoding="utf-8") as f:
                 f.write(
                     RUNNER_SCRIPT.format(
                         self.module_name,

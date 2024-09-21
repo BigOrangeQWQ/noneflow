@@ -14,7 +14,7 @@ from tests.publish.utils import (
 
 
 async def test_trigger_registry_update(app: App, mocker: MockerFixture):
-    from src.plugins.github.depends.models import RepoInfo
+    from src.plugins.github.models import RepoInfo
     from src.plugins.github.plugins.publish.utils import trigger_registry_update
     from src.providers.validation import PublishType
 
@@ -75,7 +75,7 @@ async def test_trigger_registry_update_skip_test(
     app: App, mocker: MockerFixture, mocked_api: MockRouter
 ):
     """跳过插件加载测试的情况"""
-    from src.plugins.github.depends.models import RepoInfo
+    from src.plugins.github.models import RepoInfo
     from src.plugins.github.plugins.publish.utils import trigger_registry_update
     from src.providers.validation import PublishType
 
@@ -137,7 +137,7 @@ async def test_trigger_registry_update_skip_test(
 
 async def test_trigger_registry_update_bot(app: App, mocker: MockerFixture):
     """机器人发布的情况"""
-    from src.plugins.github.depends.models import RepoInfo
+    from src.plugins.github.models import RepoInfo
     from src.plugins.github.plugins.publish.utils import trigger_registry_update
     from src.providers.validation import PublishType
 
@@ -183,7 +183,7 @@ async def test_trigger_registry_update_plugins_issue_body_info_missing(
     app: App, mocker: MockerFixture
 ):
     """如果议题信息不全，应该不会触发更新"""
-    from src.plugins.github.depends.models import RepoInfo
+    from src.plugins.github.models import RepoInfo
     from src.plugins.github.plugins.publish.utils import trigger_registry_update
     from src.providers.validation import PublishType
 
@@ -225,7 +225,7 @@ async def test_trigger_registry_update_validation_failed(
     app: App, mocker: MockerFixture, mocked_api: MockRouter
 ):
     """验证失败时也不会触发更新"""
-    from src.plugins.github.depends.models import RepoInfo
+    from src.plugins.github.models import RepoInfo
     from src.plugins.github.plugins.publish.utils import trigger_registry_update
     from src.providers.validation import PublishType
 

@@ -15,7 +15,7 @@ from nonebot.params import Depends
 from src.plugins.github.depends import get_issue_title, get_labels, get_repo_info
 from src.plugins.github.plugins.publish import utils
 from src.providers.validation.models import PublishType
-from src.plugins.github.depends.models import RepoInfo
+from src.plugins.github.models import RepoInfo
 
 
 def get_type_by_labels(

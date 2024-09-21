@@ -1,12 +1,12 @@
 from pathlib import Path
 
 import jinja2
-from src.providers.validation.models import PublishType
 
 from src.plugins.github import plugin_config
+from src.providers.validation import ValidationDict
+from src.providers.validation.models import PublishType
 
 from .constants import LOC_NAME_MAP
-from src.providers.validation import ValidationDict
 
 
 def tags_to_str(tags: list[dict[str, str]]) -> str:
