@@ -116,3 +116,8 @@ class DockerTestResult(BaseModel):
         if v:
             return v
         return None
+
+    @field_validator("config", mode="before")
+    @classmethod
+    def config_validator(cls, v: str | None):
+        return v or ""
