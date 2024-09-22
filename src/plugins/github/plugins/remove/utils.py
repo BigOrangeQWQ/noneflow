@@ -38,6 +38,7 @@ def dump_json(path: Path, data: Any):
     """
     with open(path, "w", encoding="utf-8") as f:
         json.dump(to_jsonable_python(data), f, ensure_ascii=False, indent=4)
+        f.write("\n")
 
 
 def update_file(remove_data: dict[str, Any]):
@@ -94,8 +95,7 @@ async def resolve_conflict_pull_requests(
     logger.info("开始解决冲突")
     # 获取远程分支
     run_shell_command(["git", "fetch", "origin"])
-    # 切换到主分支
-    run_shell_command(["git", "switch", "-C", plugin_config.input_config.base])
+
     # 读取主分支的数据
     main_data = {}
     for type, path in PUBLISH_PATH.items():
@@ -128,7 +128,9 @@ async def resolve_conflict_pull_requests(
 
                 logger.info(f"找到冲突的 {type} 数据 {remove_items}")
 
+                # 切换到主分支
                 run_shell_command(["git", "checkout", plugin_config.input_config.base])
+                # 切换到拉取请求对应的
                 run_shell_command(["git", "switch", "-C", pull.head.ref])
 
                 for item in remove_items:
