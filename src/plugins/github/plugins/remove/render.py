@@ -24,7 +24,7 @@ async def render_comment(result: ValidationDict) -> str:
     return await template.render_async(
         title=title,
         valid=result.valid,
-        errors=result.errors,
+        error=result.errors,
     )
 
 
@@ -34,5 +34,5 @@ async def render_error(exception: PydanticCustomError):
     return await template.render_async(
         title=title,
         valid=False,
-        errors=exception,
+        error=exception,
     )
