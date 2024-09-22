@@ -1,19 +1,18 @@
-from ast import dump
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from nonebot import logger
 from githubkit.rest import Issue
-from pydantic_core import PydanticCustomError
+from pydantic_core import PydanticCustomError, to_jsonable_python
 
-from plugins.github.depends.utils import extract_issue_number_from_ref
-from plugins.github.utils import run_shell_command
-from providers.store_test.utils import dump_json
+from src.plugins.github.depends.utils import extract_issue_number_from_ref
+from src.plugins.github.utils import run_shell_command
 from src.plugins.github import plugin_config
 from src.plugins.github.models import IssueHandler
 from src.providers.validation import extract_publish_info_from_issue
 from src.providers.validation.models import PublishType, ValidationDict
+
 
 from .constants import (
     COMMIT_MESSAGE_PREFIX,
@@ -33,6 +32,15 @@ if TYPE_CHECKING:
 def load_json(path: Path) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def dump_json(path: Path, data: Any):
+    """保存 JSON 文件
+
+    为减少文件大小，还需手动设置 separators
+    """
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(to_jsonable_python(data), f, ensure_ascii=False, indent=4)
 
 
 async def validate_author_info(issue: Issue) -> ValidationDict:

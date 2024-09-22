@@ -11,7 +11,7 @@ from nonebot.adapters.github.event import (
 from pydantic_core import PydanticCustomError
 
 
-from plugins.github.utils import run_shell_command
+from src.plugins.github.utils import run_shell_command
 from src.plugins.github.models import IssueHandler
 from src.plugins.github.depends import (
     bypass_git,
