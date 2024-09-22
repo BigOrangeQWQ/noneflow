@@ -75,6 +75,7 @@ async def get_installation_id(
     return installation.id
 
 
+
 def get_issue_number(
     event: IssuesOpened | IssuesReopened | IssuesEdited | IssueCommentCreated,
 ) -> int:

@@ -6,15 +6,18 @@ from nonebot.adapters.github.event import (
     IssuesOpened,
     IssuesReopened,
     IssueCommentCreated,
+    PullRequestClosed,
 )
 from pydantic_core import PydanticCustomError
 
 
+from plugins.github.utils import run_shell_command
 from src.plugins.github.models import IssueHandler
 from src.plugins.github.depends import (
     bypass_git,
     get_installation_id,
     get_issue_number,
+    get_related_issue_number,
     get_repo_info,
     install_pre_commit_hooks,
     is_bot_triggered_workflow,
@@ -23,9 +26,79 @@ from src.plugins.github.depends import RepoInfo
 
 
 from .render import render_comment, render_error
-from .constants import BRANCH_NAME_PREFIX
-from .depends import get_name_by_labels
-from .utils import validate_author_info, process_pr_and_issue_title
+from .constants import BRANCH_NAME_PREFIX, REMOVE_LABEL
+from .depends import check_labels, get_name_by_labels
+from .utils import (
+    resolve_conflict_pull_requests,
+    validate_author_info,
+    process_pr_and_issue_title,
+)
+
+
+async def pr_close_rule(
+    is_remove_pr: bool = check_labels("remove"),
+    related_issue_number: int | None = Depends(get_related_issue_number),
+) -> bool:
+    if not is_remove_pr:
+        logger.info("拉取请求与发布无关，已跳过")
+        return False
+
+    if not related_issue_number:
+        logger.error("无法获取相关的议题编号")
+        return False
+
+    return True
+
+
+pr_close_matcher = on_type(PullRequestClosed, rule=pr_close_rule)
+
+
+@pr_close_matcher.handle(
+    parameterless=[Depends(bypass_git), Depends(install_pre_commit_hooks)]
+)
+async def handle_pr_close(
+    event: PullRequestClosed,
+    bot: GitHubBot,
+    installation_id: int = Depends(get_installation_id),
+    repo_info: RepoInfo = Depends(get_repo_info),
+    related_issue_number: int = Depends(get_related_issue_number),
+) -> None:
+    async with bot.as_installation(installation_id):
+        issue = (
+            await bot.rest.issues.async_get(
+                **repo_info.model_dump(), issue_number=related_issue_number
+            )
+        ).parsed_data
+
+        handler = IssueHandler.model_construct(
+            bot=bot, repo_info=repo_info, issue_number=related_issue_number, issue=issue
+        )
+        reason = "completed" if event.payload.pull_request.merged else "not_planned"
+
+        if issue.state == "open":
+            await handler.close_issue(reason)
+        logger.info(f"议题 #{related_issue_number} 已关闭")
+
+        try:
+            run_shell_command(
+                [
+                    "git",
+                    "push",
+                    "origin",
+                    "--delete",
+                    event.payload.pull_request.head.ref,
+                ]
+            )
+            logger.info("已删除对应分支")
+        except Exception:
+            logger.info("对应分支不存在或已删除")
+
+        if event.payload.pull_request.merged:
+            logger.info("发布的拉取请求已合并，准备更新其它拉取请求的提交")
+            pull_requests = await handler.get_pull_requests_by_label(REMOVE_LABEL)
+            await resolve_conflict_pull_requests(handler, pull_requests)
+        else:
+            logger.info("发布的拉取请求未合并，已跳过")
 
 
 async def check_rule(
@@ -39,7 +112,7 @@ async def check_rule(
     if event.payload.issue.pull_request:
         logger.info("评论在拉取请求下，已跳过")
         return False
-    if "remove" not in edit_type:
+    if REMOVE_LABEL not in edit_type:
         logger.info("议题与删除无关，已跳过")
         return False
     return True
@@ -76,6 +149,7 @@ async def handle_remove_check(
         )
 
         try:
+            # 搜索包的信息和验证作者信息
             result = await validate_author_info(issue)
         except PydanticCustomError as err:
             logger.error(f"信息验证失败: {err}")

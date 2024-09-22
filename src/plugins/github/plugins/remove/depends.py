@@ -32,3 +32,19 @@ def get_name_by_labels(
         if label.name:
             label_names.append(label.name)
     return label_names
+
+
+def check_labels(labels: list[str] | str):  # -> Any:
+    """检查标签是否存在"""
+    if isinstance(labels, str):
+        labels = [labels]
+
+    async def _check_labels(
+        has_labels: list[str] = Depends(get_name_by_labels),
+    ) -> bool:
+        for label in labels:
+            if label not in has_labels:
+                return False
+        return True
+
+    return Depends(_check_labels)

@@ -1,9 +1,13 @@
+from typing import Literal
 from githubkit.rest import Issue
+from githubkit.versions.v2022_11_28.models.group_0211 import PullRequestSimple
 from nonebot import logger
 from pydantic import BaseModel, ConfigDict, computed_field
 from nonebot.adapters.github import Bot
 
 from githubkit.exception import RequestFailed
+from githubkit.utils import UNSET
+from githubkit.typing import Missing
 
 from src.plugins.github.constants import NONEFLOW_MARKER
 from src.plugins.github.utils import run_shell_command
@@ -200,3 +204,38 @@ class IssueHandler(BaseModel):
                 **self.repo_info.model_dump(), issue_number=self.issue_number
             )
         ).parsed_data
+
+    async def close_issue(self, reason: str):
+        """关闭议题"""
+        if self.issue.state == "open":
+            logger.info(f"正在关闭议题 #{self.issue_number}")
+            await self.bot.rest.issues.async_update(
+                **self.repo_info.model_dump(),
+                issue_number=self.issue_number,
+                state="closed",
+                state_reason=reason,
+            )
+
+    async def get_pull_requests_by_label(self, label: str) -> list[PullRequestSimple]:
+        """根据标签获取拉取请求"""
+        pulls = (
+            await self.bot.rest.pulls.async_list(
+                **self.repo_info.model_dump(), state="open"
+            )
+        ).parsed_data
+        return [
+            pull for pull in pulls if label in [label.name for label in pull.labels]
+        ]
+
+    async def merge_pull_request(
+        self,
+        pull_number: int,
+        merge_method: Missing[Literal["merge", "squash", "rebase"]] = UNSET,
+    ):
+        """合并拉取请求"""
+        await self.bot.rest.pulls.async_merge(
+            **self.repo_info.model_dump(),
+            pull_number=pull_number,
+            merge_method=merge_method,
+        )
+        logger.info(f"拉取请求 #{pull_number} 已合并")

@@ -84,16 +84,13 @@ async def handle_pr_close(
                 **repo_info.model_dump(), issue_number=related_issue_number
             )
         ).parsed_data
+        handler = IssueHandler.model_construct(
+            bot=bot, repo_info=repo_info, issue_number=related_issue_number, issue=issue
+        )
+        reason = "completed" if event.payload.pull_request.merged else "not_planned"
+
         if issue.state == "open":
-            logger.info(f"正在关闭议题 #{related_issue_number}")
-            await bot.rest.issues.async_update(
-                **repo_info.model_dump(),
-                issue_number=related_issue_number,
-                state="closed",
-                state_reason="completed"
-                if event.payload.pull_request.merged
-                else "not_planned",
-            )
+            await handler.close_issue(reason)
         logger.info(f"议题 #{related_issue_number} 已关闭")
 
         try:
