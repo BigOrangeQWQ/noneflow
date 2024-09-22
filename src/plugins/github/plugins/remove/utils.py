@@ -51,7 +51,6 @@ def update_file(remove_data: dict[str, Any]):
         new_data = [item for item in data if item != remove_data]
 
         if data == new_data:
-            logger.info(f"没有找到对应的数据 {remove_data}")
             continue
 
         # 如果数据发生变化则更新文件
@@ -115,13 +114,10 @@ async def resolve_conflict_pull_requests(
 
         # 切换到该拉取请求对应的分支
         run_shell_command(["git", "checkout", pull.head.ref])
-        run_shell_command(["git", "switch", "-C", pull.head.ref])
         # 读取拉取请求分支的数据
         pull_data = {}
         for type, path in PUBLISH_PATH.items():
             pull_data[type] = load_json(path)
-
-        logger.info(f"{main_data}, {pull_data}")
 
         for type, data in pull_data.items():
             if data != main_data[type]:
@@ -131,6 +127,10 @@ async def resolve_conflict_pull_requests(
                 remove_items = [item for item in data if item not in main_data[type]]
 
                 logger.info(f"找到冲突的 {type} 数据 {remove_items}")
+
+                run_shell_command(["git", "checkout", plugin_config.input_config.base])
+                run_shell_command(["git", "switch", "-C", pull.head.ref])
+
                 for item in remove_items:
                     update_file(item)
                 handler.commit_and_push(
@@ -138,4 +138,5 @@ async def resolve_conflict_pull_requests(
                     pull.head.ref,
                 )
                 logger.info(f"已解决 {type} 数据冲突")
+
         logger.info(f"{pull.title} 处理完毕")
