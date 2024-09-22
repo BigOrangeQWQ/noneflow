@@ -49,14 +49,6 @@ if TYPE_CHECKING:
     )
 
 
-def strip_ansi(text: str | None) -> str:
-    """去除 ANSI 转义字符"""
-    if not text:
-        return ""
-    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-    return ansi_escape.sub("", text)
-
-
 def get_type_by_labels(
     labels: list["PullRequestPropLabelsItems"]
     | list["PullRequestSimplePropLabelsItems"]
@@ -286,7 +278,7 @@ async def ensure_issue_content(handler: IssueHandler):
 
     if new_content:
         new_content.append(issue_body)
-        await handler.change_issue_content(
+        await handler.update_issue_content(
             "\n\n".join(new_content),
         )
         logger.info("检测到议题内容缺失，已更新")
@@ -300,13 +292,13 @@ async def ensure_issue_test_button(handler: IssueHandler):
     if not search_result:
         new_content = f"{ISSUE_FIELD_TEMPLATE.format(PLUGIN_TEST_STRING)}\n\n{PLUGIN_TEST_BUTTON_STRING}"
 
-        await handler.change_issue_content(f"{issue_body}\n\n{new_content}")
+        await handler.update_issue_content(f"{issue_body}\n\n{new_content}")
         logger.info("为议题添加插件重测按钮")
     elif search_result.group(1) == " ":
         new_content = issue_body.replace(
             search_result.group(0), PLUGIN_TEST_BUTTON_STRING
         )
-        await handler.change_issue_content(f"{new_content}")
+        await handler.update_issue_content(f"{new_content}")
         logger.info("选中议题的插件测试按钮")
 
 
@@ -333,7 +325,7 @@ async def process_pr_and_issue_title(
     if result.valid:
         commit_message = f"{COMMIT_MESSAGE_PREFIX} {result.type.value.lower()} {result.name} (#{handler.issue_number})"
 
-        handler.switch_branch(branch_name)
+        run_shell_command(["git", "switch", "-C", branch_name])
         # 更新文件
         update_file(result)
         handler.commit_and_push(commit_message, branch_name)

@@ -84,7 +84,7 @@ async def handle_pr_close(
                 **repo_info.model_dump(), issue_number=related_issue_number
             )
         ).parsed_data
-        handler = IssueHandler.model_construct(
+        handler = IssueHandler(
             bot=bot, repo_info=repo_info, issue_number=related_issue_number, issue=issue
         )
         reason = "completed" if event.payload.pull_request.merged else "not_planned"
@@ -166,7 +166,7 @@ async def handle_publish_plugin_check(
             )
         ).parsed_data
 
-        handler = IssueHandler.model_construct(
+        handler = IssueHandler(
             issue=issue, bot=bot, repo_info=repo_info, issue_number=issue_number
         )
 
@@ -224,7 +224,7 @@ async def handle_adapter_publish_check(
             )
         ).parsed_data
 
-        handler = IssueHandler.model_construct(
+        handler = IssueHandler(
             issue=issue, bot=bot, repo_info=repo_info, issue_number=issue_number
         )
 
@@ -270,7 +270,7 @@ async def handle_bot_publish_check(
             )
         ).parsed_data
 
-        handler = IssueHandler.model_construct(
+        handler = IssueHandler(
             issue=issue, bot=bot, repo_info=repo_info, issue_number=issue_number
         )
 

@@ -17,7 +17,6 @@ from src.providers.validation.models import PublishType, ValidationDict
 from .constants import (
     COMMIT_MESSAGE_PREFIX,
     PUBLISH_PATH,
-    REMOVE_HOMEPAGE_PATTERN,
     REMOVE_LABEL,
 )
 
@@ -74,7 +73,7 @@ async def process_pr_and_issue_title(
     commit_message = f"{COMMIT_MESSAGE_PREFIX} {result.name} (#{handler.issue_number})"
 
     # 切换分支
-    handler.switch_branch(branch_name)
+    run_shell_command(["git", "switch", "-C", branch_name])
     # 更新文件并提交更改
     update_file(result.data)
     handler.commit_and_push(commit_message, branch_name)
@@ -99,8 +98,7 @@ async def resolve_conflict_pull_requests(
     # 获取远程分支
     run_shell_command(["git", "fetch", "origin"])
     # 切换到主分支
-    handler.switch_branch(plugin_config.input_config.base)
-
+    run_shell_command(["git", "switch", "-C", plugin_config.input_config.base])
     # 读取主分支的数据
     main_data = {}
     for type, path in PUBLISH_PATH.items():
@@ -118,8 +116,7 @@ async def resolve_conflict_pull_requests(
             continue
 
         # 切换到该拉取请求对应的分支
-        handler.switch_branch(pull.head.ref)
-
+        run_shell_command(["git", "switch", "-C", pull.head.ref])
         # 读取拉取请求分支的数据
         pull_data = {}
         for type, path in PUBLISH_PATH.items():

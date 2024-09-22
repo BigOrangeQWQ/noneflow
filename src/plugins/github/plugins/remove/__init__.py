@@ -70,7 +70,7 @@ async def handle_pr_close(
             )
         ).parsed_data
 
-        handler = IssueHandler.model_construct(
+        handler = IssueHandler(
             bot=bot, repo_info=repo_info, issue_number=related_issue_number, issue=issue
         )
         reason = "completed" if event.payload.pull_request.merged else "not_planned"
@@ -144,7 +144,7 @@ async def handle_remove_check(
             logger.info("议题未开启，已跳过")
             await remove_check_matcher.finish()
 
-        handler = IssueHandler.model_construct(
+        handler = IssueHandler(
             bot=bot, repo_info=repo_info, issue_number=issue_number, issue=issue
         )
 

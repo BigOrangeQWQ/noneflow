@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any
 
 from githubkit.rest import Issue
@@ -33,7 +34,14 @@ from .constants import (
     PROJECT_LINK_PATTERN,
     TAGS_PATTERN,
 )
-from .utils import strip_ansi
+
+
+def strip_ansi(text: str | None) -> str:
+    """去除 ANSI 转义字符"""
+    if not text:
+        return ""
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    return ansi_escape.sub("", text)
 
 
 def extract_author_info(issue: Issue) -> dict[str, Any]:

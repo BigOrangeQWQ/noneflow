@@ -1,9 +1,17 @@
-from typing import Literal
+from typing import Any, Literal
 from githubkit.rest import Issue
 from githubkit.versions.v2022_11_28.models.group_0211 import PullRequestSimple
 from nonebot import logger
-from pydantic import BaseModel, ConfigDict, computed_field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 from nonebot.adapters.github import Bot
+from pydantic import dataclasses
 
 from githubkit.exception import RequestFailed
 from githubkit.utils import UNSET
@@ -20,25 +28,67 @@ class RepoInfo(BaseModel):
     repo: str
 
 
-class IssueHandler(BaseModel):
-    """Issue 的相关 Github/Git 操作"""
-
+class GithubHandler(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     bot: Bot
     repo_info: RepoInfo
+    author: str = ""
     issue_number: int
-    issue: Issue
 
-    @computed_field(return_type=str)
-    @property
-    def author(self) -> str:
-        return self.issue.user.login if self.issue.user else ""
+    async def list_comments(self):
+        return (
+            await self.bot.rest.issues.async_list_comments(
+                **self.repo_info.model_dump(), issue_number=self.issue_number
+            )
+        ).parsed_data
 
-    @computed_field(return_type=int)
-    @property
-    def author_id(self) -> int:
-        return self.issue.user.id if self.issue.user else 0
+    async def get_pull_requests_by_label(self, label: str) -> list[PullRequestSimple]:
+        """根据标签获取拉取请求"""
+        pulls = (
+            await self.bot.rest.pulls.async_list(
+                **self.repo_info.model_dump(), state="open"
+            )
+        ).parsed_data
+        return [
+            pull for pull in pulls if label in [label.name for label in pull.labels]
+        ]
+
+    async def pull_request_to_draft(self, branch_name: str):
+        """
+        将拉取请求转换为草稿
+        """
+        pulls = (
+            await self.bot.rest.pulls.async_list(
+                **self.repo_info.model_dump(),
+                head=f"{self.repo_info.owner}:{branch_name}",
+            )
+        ).parsed_data
+        if pulls and (pull := pulls[0]) and not pull.draft:
+            await self.bot.async_graphql(
+                query="""mutation convertPullRequestToDraft($pullRequestId: ID!) {
+                    convertPullRequestToDraft(input: {pullRequestId: $pullRequestId}) {
+                        clientMutationId
+                    }
+                }""",
+                variables={"pullRequestId": pull.node_id},
+            )
+            logger.info("删除没通过检查，已将之前的拉取请求转换为草稿")
+        else:
+            logger.info("没通过检查，暂不创建拉取请求")
+
+    async def merge_pull_request(
+        self,
+        pull_number: int,
+        merge_method: Missing[Literal["merge", "squash", "rebase"]] = UNSET,
+    ):
+        """合并拉取请求"""
+        await self.bot.rest.pulls.async_merge(
+            **self.repo_info.model_dump(),
+            pull_number=pull_number,
+            merge_method=merge_method,
+        )
+        logger.info(f"拉取请求 #{pull_number} 已合并")
 
     def commit_and_push(self, message: str, branch_name: str):
         run_shell_command(["git", "config", "--global", "user.name", self.author])
@@ -150,34 +200,31 @@ class IssueHandler(BaseModel):
             )
             logger.info("评论创建完成")
 
-    async def pull_request_to_draft(self, branch_name: str):
-        """
-        将拉取请求转换为草稿
-        """
-        pulls = (
-            await self.bot.rest.pulls.async_list(
-                **self.repo_info.model_dump(),
-                head=f"{self.repo_info.owner}:{branch_name}",
-            )
-        ).parsed_data
-        if pulls and (pull := pulls[0]) and not pull.draft:
-            await self.bot.async_graphql(
-                query="""mutation convertPullRequestToDraft($pullRequestId: ID!) {
-                    convertPullRequestToDraft(input: {pullRequestId: $pullRequestId}) {
-                        clientMutationId
-                    }
-                }""",
-                variables={"pullRequestId": pull.node_id},
-            )
-            logger.info("删除没通过检查，已将之前的拉取请求转换为草稿")
-        else:
-            logger.info("没通过检查，暂不创建拉取请求")
+
+class IssueHandler(GithubHandler):
+    """Issue 的相关 Github/Git 操作"""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    issue: Issue
+    author_id: int = 0
+
+    @model_validator(mode="before")
+    @classmethod
+    def issuehandler_validator(cls, data):
+        if data.get("author_id") is None and data.get("issue"):
+            issue = data["issue"]
+            data["author_id"] = issue.user.id if issue.user else 0
+        if data.get("author") is None and data.get("issue"):
+            issue = data["issue"]
+            data["author"] = issue.user.login if issue.user else ""
+        return data
 
     async def update_issue_title(
         self,
         title: str,
     ):
-        if self.issue.title != title:
+        if self.issue and self.issue.title != title:
             await self.bot.rest.issues.async_update(
                 **self.repo_info.model_dump(),
                 issue_number=self.issue_number,
@@ -185,11 +232,7 @@ class IssueHandler(BaseModel):
             )
             logger.info(f"标题已修改为 {title}")
 
-    def switch_branch(self, branch_name: str):
-        """切换分支"""
-        run_shell_command(["git", "switch", "-C", branch_name])
-
-    async def change_issue_content(self, body: str):
+    async def update_issue_content(self, body: str):
         """编辑议题内容"""
         await self.bot.rest.issues.async_update(
             **self.repo_info.model_dump(),
@@ -198,16 +241,9 @@ class IssueHandler(BaseModel):
         )
         logger.info("议题内容已修改")
 
-    async def list_comments(self):
-        return (
-            await self.bot.rest.issues.async_list_comments(
-                **self.repo_info.model_dump(), issue_number=self.issue_number
-            )
-        ).parsed_data
-
     async def close_issue(self, reason: str):
         """关闭议题"""
-        if self.issue.state == "open":
+        if self.issue and self.issue.state == "open":
             logger.info(f"正在关闭议题 #{self.issue_number}")
             await self.bot.rest.issues.async_update(
                 **self.repo_info.model_dump(),
@@ -215,27 +251,3 @@ class IssueHandler(BaseModel):
                 state="closed",
                 state_reason=reason,
             )
-
-    async def get_pull_requests_by_label(self, label: str) -> list[PullRequestSimple]:
-        """根据标签获取拉取请求"""
-        pulls = (
-            await self.bot.rest.pulls.async_list(
-                **self.repo_info.model_dump(), state="open"
-            )
-        ).parsed_data
-        return [
-            pull for pull in pulls if label in [label.name for label in pull.labels]
-        ]
-
-    async def merge_pull_request(
-        self,
-        pull_number: int,
-        merge_method: Missing[Literal["merge", "squash", "rebase"]] = UNSET,
-    ):
-        """合并拉取请求"""
-        await self.bot.rest.pulls.async_merge(
-            **self.repo_info.model_dump(),
-            pull_number=pull_number,
-            merge_method=merge_method,
-        )
-        logger.info(f"拉取请求 #{pull_number} 已合并")
