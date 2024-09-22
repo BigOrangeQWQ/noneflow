@@ -1,7 +1,7 @@
 import json
-import re
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
+from githubkit.rest import Issue
 from nonebot import logger
 from src.providers.validation import (
     PublishType,
@@ -33,20 +33,10 @@ from .constants import (
     PROJECT_LINK_PATTERN,
     TAGS_PATTERN,
 )
-
-if TYPE_CHECKING:
-    from githubkit.rest import Issue
+from .utils import strip_ansi
 
 
-def strip_ansi(text: str | None) -> str:
-    """去除 ANSI 转义字符"""
-    if not text:
-        return ""
-    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-    return ansi_escape.sub("", text)
-
-
-def extract_author_info(issue: "Issue") -> dict[str, Any]:
+def extract_author_info(issue: Issue) -> dict[str, Any]:
     """
     从议题中获取作者信息
     """
@@ -56,7 +46,7 @@ def extract_author_info(issue: "Issue") -> dict[str, Any]:
     }
 
 
-async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
+async def validate_plugin_info_from_issue(issue: Issue) -> ValidationDict:
     """从议题中获取插件信息，并且运行插件测试加载且获取插件元信息后进行验证"""
     body = issue.body if issue.body else ""
 
@@ -153,7 +143,7 @@ async def validate_plugin_info_from_issue(issue: "Issue") -> ValidationDict:
     return validate_data
 
 
-async def validate_adapter_info_from_issue(issue: "Issue") -> ValidationDict:
+async def validate_adapter_info_from_issue(issue: Issue) -> ValidationDict:
     """从议题中提取适配器信息"""
     body = issue.body if issue.body else ""
     raw_data: dict[str, Any] = extract_publish_info_from_issue(
@@ -179,7 +169,7 @@ async def validate_adapter_info_from_issue(issue: "Issue") -> ValidationDict:
     return validate_info(PublishType.ADAPTER, raw_data, validation_context)
 
 
-async def validate_bot_info_from_issue(issue: "Issue") -> ValidationDict:
+async def validate_bot_info_from_issue(issue: Issue) -> ValidationDict:
     """从议题中提取机器人信息"""
     body = issue.body if issue.body else ""
     raw_data: dict[str, Any] = extract_publish_info_from_issue(

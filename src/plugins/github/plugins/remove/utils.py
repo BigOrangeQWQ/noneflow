@@ -43,53 +43,6 @@ def dump_json(path: Path, data: Any):
         json.dump(to_jsonable_python(data), f, ensure_ascii=False, indent=4)
 
 
-async def validate_author_info(issue: Issue) -> ValidationDict:
-    """
-    根据主页链接与作者信息删除对应的包储存在商店里的数据
-    """
-
-    homepage = extract_publish_info_from_issue(
-        {
-            "homepage": REMOVE_HOMEPAGE_PATTERN,
-        },
-        issue.body or "",
-    ).get("homepage")
-    author = issue.user.login if issue.user else ""
-    author_id = issue.user.id if issue.user else None
-
-    store_data = {
-        PublishType.PLUGIN: plugin_config.input_config.plugin_path,
-        PublishType.ADAPTER: plugin_config.input_config.adapter_path,
-        PublishType.BOT: plugin_config.input_config.bot_path,
-    }
-
-    for type, path in store_data.items():
-        if not path.exists():
-            logger.info(f"{type} 数据文件不存在，跳过")
-            continue
-
-        data: list[dict[str, str]] = load_json(path)
-        for item in data:
-            if item.get("homepage") == homepage:
-                logger.info(f"找到匹配的 {type} 数据 {item}")
-
-                # author_id 暂时没有储存到数据里, 所以暂时不校验
-                if item.get("author") == author or (
-                    item.get("author_id") is not None
-                    and item.get("author_id") == author_id
-                ):
-                    return ValidationDict(
-                        valid=True,
-                        data=item,
-                        type=type,
-                        name=item.get("name") or item.get("module_name") or "",
-                        author=author,
-                        errors=[],
-                    )
-                raise PydanticCustomError("author_info", "作者信息不匹配")
-    raise PydanticCustomError("not_found", "没有包含对应主页链接的包")
-
-
 def update_file(remove_data: dict[str, Any]):
     """删除对应的包储存在 registry 里的数据"""
     logger.info("开始更新文件")
@@ -130,7 +83,7 @@ async def process_pr_and_issue_title(
         plugin_config.input_config.base,
         title,
         branch_name,
-        REMOVE_LABEL,
+        [REMOVE_LABEL, result.type.value.lower()],
     )
 
 
@@ -142,6 +95,7 @@ async def resolve_conflict_pull_requests(
 
     直接重新提交之前分支中的内容
     """
+    logger.info("开始解决冲突")
     # 获取远程分支
     run_shell_command(["git", "fetch", "origin"])
     # 切换到主分支

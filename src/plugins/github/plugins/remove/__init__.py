@@ -30,9 +30,9 @@ from .constants import BRANCH_NAME_PREFIX, REMOVE_LABEL
 from .depends import check_labels, get_name_by_labels
 from .utils import (
     resolve_conflict_pull_requests,
-    validate_author_info,
     process_pr_and_issue_title,
 )
+from .validation import validate_author_info
 
 
 async def pr_close_rule(

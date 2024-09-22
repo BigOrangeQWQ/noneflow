@@ -64,7 +64,7 @@ class IssueHandler(BaseModel):
             run_shell_command(["git", "push", "origin", branch_name, "-f"])
 
     async def create_pull_request(
-        self, base_branch: str, title: str, branch_name: str, label: str
+        self, base_branch: str, title: str, branch_name: str, label: str | list[str]
     ):
         """创建拉取请求"""
         body = f"resolve #{self.issue_number}"
@@ -84,7 +84,7 @@ class IssueHandler(BaseModel):
             await self.bot.rest.issues.async_add_labels(
                 **self.repo_info.model_dump(),
                 issue_number=pull.number,
-                labels=[label],
+                labels=[label] if isinstance(label, str) else label,
             )
             logger.info("拉取请求创建完毕")
         except RequestFailed:

@@ -1,9 +1,8 @@
 import asyncio
 import json
 import re
-import subprocess
 from typing import TYPE_CHECKING
-from githubkit.exception import RequestFailed
+
 from githubkit.typing import Missing
 from nonebot import logger
 from nonebot.adapters.github import Bot, GitHubBot
@@ -14,6 +13,7 @@ from src.providers.validation import (
     ValidationDict,
 )
 from src.plugins.github.depends import RepoInfo
+from src.plugins.github.utils import run_shell_command
 from src.plugins.github import plugin_config
 
 
@@ -49,21 +49,12 @@ if TYPE_CHECKING:
     )
 
 
-def run_shell_command(command: list[str]):
-    """运行 shell 命令
-
-    如果遇到错误则抛出异常
-    """
-    logger.info(f"运行命令: {command}")
-    try:
-        r = subprocess.run(command, check=True, capture_output=True)
-        logger.debug(f"命令输出: \n{r.stdout.decode()}")
-    except subprocess.CalledProcessError as e:
-        logger.debug("命令运行失败")
-        logger.debug(f"命令输出: \n{e.stdout.decode()}")
-        logger.debug(f"命令错误: \n{e.stderr.decode()}")
-        raise
-    return r
+def strip_ansi(text: str | None) -> str:
+    """去除 ANSI 转义字符"""
+    if not text:
+        return ""
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    return ansi_escape.sub("", text)
 
 
 def get_type_by_labels(
