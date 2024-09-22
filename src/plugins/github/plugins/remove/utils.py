@@ -3,15 +3,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from nonebot import logger
-from githubkit.rest import Issue
-from pydantic_core import PydanticCustomError, to_jsonable_python
+from pydantic_core import to_jsonable_python
 
 from src.plugins.github.depends.utils import extract_issue_number_from_ref
 from src.plugins.github.utils import run_shell_command
 from src.plugins.github import plugin_config
 from src.plugins.github.models import IssueHandler
-from src.providers.validation import extract_publish_info_from_issue
-from src.providers.validation.models import PublishType, ValidationDict
+from src.providers.validation.models import ValidationDict
 
 
 from .constants import (
@@ -82,7 +80,7 @@ async def process_pr_and_issue_title(
         plugin_config.input_config.base,
         title,
         branch_name,
-        [REMOVE_LABEL, result.type.value.lower()],
+        [REMOVE_LABEL],
     )
 
 
@@ -116,11 +114,14 @@ async def resolve_conflict_pull_requests(
             continue
 
         # 切换到该拉取请求对应的分支
+        run_shell_command(["git", "checkout", pull.head.ref])
         run_shell_command(["git", "switch", "-C", pull.head.ref])
         # 读取拉取请求分支的数据
         pull_data = {}
         for type, path in PUBLISH_PATH.items():
             pull_data[type] = load_json(path)
+
+        logger.info(f"{main_data}, {pull_data}")
 
         for type, data in pull_data.items():
             if data != main_data[type]:

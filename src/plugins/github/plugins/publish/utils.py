@@ -7,7 +7,7 @@ from githubkit.typing import Missing
 from nonebot import logger
 from nonebot.adapters.github import Bot, GitHubBot
 
-from src.plugins.github.models import GitHandler, GithubHandler, IssueHandler
+from src.plugins.github.models import GitHandler, IssueHandler
 from src.providers.validation import (
     PublishType,
     ValidationDict,
