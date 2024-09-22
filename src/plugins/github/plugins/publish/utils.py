@@ -7,7 +7,7 @@ from githubkit.typing import Missing
 from nonebot import logger
 from nonebot.adapters.github import Bot, GitHubBot
 
-from src.plugins.github.models import IssueHandler
+from src.plugins.github.models import GitHandler, GithubHandler, IssueHandler
 from src.providers.validation import (
     PublishType,
     ValidationDict,
@@ -97,6 +97,11 @@ def get_type_by_commit_message(message: str) -> PublishType | None:
         return PublishType.ADAPTER
 
 
+def commit_message(type: PublishType, name: str, issue_number: int) -> str:
+    """构造提交信息"""
+    return f"{COMMIT_MESSAGE_PREFIX} {type.value.lower()} {name} (#{issue_number})"
+
+
 def extract_issue_number_from_ref(ref: str) -> int | None:
     """从 Ref 中提取议题号"""
     match = re.search(rf"{BRANCH_NAME_PREFIX}(\d+)", ref)
@@ -171,12 +176,17 @@ async def resolve_conflict_pull_requests(
                 if publish_type == PublishType.PLUGIN
                 else None,
             )
+
             # 回到主分支
             run_shell_command(["git", "checkout", plugin_config.input_config.base])
             # 切换到对应分支
             run_shell_command(["git", "switch", "-C", pull.head.ref])
             update_file(result)
-            commit_and_push(result, pull.head.ref, issue_number)
+            GitHandler().commit_and_push(
+                commit_message(result.type, result.name, issue_number),
+                pull.head.ref,
+                result.author,
+            )
             logger.info("拉取请求更新完毕")
 
 

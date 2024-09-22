@@ -1,17 +1,12 @@
-from typing import Any, Literal
-from githubkit.rest import Issue
-from githubkit.versions.v2022_11_28.models.group_0211 import PullRequestSimple
+from typing import Literal
+from githubkit.rest import Issue, PullRequestSimple
 from nonebot import logger
 from pydantic import (
     BaseModel,
     ConfigDict,
-    Field,
-    computed_field,
-    field_validator,
     model_validator,
 )
 from nonebot.adapters.github import Bot
-from pydantic import dataclasses
 
 from githubkit.exception import RequestFailed
 from githubkit.utils import UNSET
@@ -28,20 +23,87 @@ class RepoInfo(BaseModel):
     repo: str
 
 
-class GithubHandler(BaseModel):
+class GitHandler(BaseModel):
+    """Git 操作"""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def commit_and_push(self, message: str, branch_name: str, author: str):
+        run_shell_command(["git", "config", "--global", "user.name", author])
+        user_email = f"{author}@users.noreply.github.com"
+        run_shell_command(["git", "config", "--global", "user.email", user_email])
+        run_shell_command(["git", "add", "-A"])
+        try:
+            run_shell_command(["git", "commit", "-m", message])
+        except Exception:
+            # 如果提交失败，因为是 pre-commit hooks 格式化代码导致的，所以需要再次提交
+            run_shell_command(["git", "add", "-A"])
+            run_shell_command(["git", "commit", "-m", message])
+
+        try:
+            run_shell_command(["git", "fetch", "origin"])
+            r = run_shell_command(["git", "diff", f"origin/{branch_name}", branch_name])
+            if r.stdout:
+                raise Exception
+            else:
+                logger.info("检测到本地分支与远程分支一致，跳过推送")
+        except Exception:
+            logger.info("检测到本地分支与远程分支不一致，尝试强制推送")
+            run_shell_command(["git", "push", "origin", branch_name, "-f"])
+
+
+class GithubHandler(GitHandler):
+    """Bot 相关的 Github 操作"""
+
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     bot: Bot
     repo_info: RepoInfo
-    author: str = ""
-    issue_number: int
 
-    async def list_comments(self):
+    async def list_comments(self, issue_number: int):
         return (
             await self.bot.rest.issues.async_list_comments(
-                **self.repo_info.model_dump(), issue_number=self.issue_number
+                **self.repo_info.model_dump(), issue_number=issue_number
             )
         ).parsed_data
+
+    async def comment_issue(self, comment: str, issue_number: int):
+        """发布评论
+        若之前发布过评论，则修改之前的评论
+        """
+        logger.info("开始发布评论")
+
+        # 重复利用评论
+        # 如果发现之前评论过，直接修改之前的评论
+        comments = (
+            await self.bot.rest.issues.async_list_comments(
+                **self.repo_info.model_dump(), issue_number=issue_number
+            )
+        ).parsed_data
+        reusable_comment = next(
+            filter(lambda x: NONEFLOW_MARKER in (x.body if x.body else ""), comments),
+            None,
+        )
+
+        # comment = await render_comment(result, bool(reusable_comment))
+        if reusable_comment:
+            logger.info(f"发现已有评论 {reusable_comment.id}，正在修改")
+            if reusable_comment.body != comment:
+                await self.bot.rest.issues.async_update_comment(
+                    **self.repo_info.model_dump(),
+                    comment_id=reusable_comment.id,
+                    body=comment,
+                )
+                logger.info("评论修改完成")
+            else:
+                logger.info("评论内容无变化，跳过修改")
+        else:
+            await self.bot.rest.issues.async_create_comment(
+                **self.repo_info.model_dump(),
+                issue_number=issue_number,
+                body=comment,
+            )
+            logger.info("评论创建完成")
 
     async def get_pull_requests_by_label(self, label: str) -> list[PullRequestSimple]:
         """根据标签获取拉取请求"""
@@ -90,34 +152,16 @@ class GithubHandler(BaseModel):
         )
         logger.info(f"拉取请求 #{pull_number} 已合并")
 
-    def commit_and_push(self, message: str, branch_name: str):
-        run_shell_command(["git", "config", "--global", "user.name", self.author])
-        user_email = f"{self.author}@users.noreply.github.com"
-        run_shell_command(["git", "config", "--global", "user.email", user_email])
-        run_shell_command(["git", "add", "-A"])
-        try:
-            run_shell_command(["git", "commit", "-m", message])
-        except Exception:
-            # 如果提交失败，因为是 pre-commit hooks 格式化代码导致的，所以需要再次提交
-            run_shell_command(["git", "add", "-A"])
-            run_shell_command(["git", "commit", "-m", message])
-
-        try:
-            run_shell_command(["git", "fetch", "origin"])
-            r = run_shell_command(["git", "diff", f"origin/{branch_name}", branch_name])
-            if r.stdout:
-                raise Exception
-            else:
-                logger.info("检测到本地分支与远程分支一致，跳过推送")
-        except Exception:
-            logger.info("检测到本地分支与远程分支不一致，尝试强制推送")
-            run_shell_command(["git", "push", "origin", branch_name, "-f"])
-
     async def create_pull_request(
-        self, base_branch: str, title: str, branch_name: str, label: str | list[str]
+        self,
+        base_branch: str,
+        title: str,
+        branch_name: str,
+        label: str | list[str],
+        issue_number: int,
     ):
         """创建拉取请求"""
-        body = f"resolve #{self.issue_number}"
+        body = f"resolve #{issue_number}"
 
         try:
             # 创建拉取请求
@@ -162,44 +206,6 @@ class GithubHandler(BaseModel):
                 )
                 logger.info("拉取请求已标记为可评审")
 
-    async def comment_issue(self, comment: str):
-        """发布评论
-        若之前发布过评论，则修改之前的评论
-        """
-        logger.info("开始发布评论")
-
-        # 重复利用评论
-        # 如果发现之前评论过，直接修改之前的评论
-        comments = (
-            await self.bot.rest.issues.async_list_comments(
-                **self.repo_info.model_dump(), issue_number=self.issue_number
-            )
-        ).parsed_data
-        reusable_comment = next(
-            filter(lambda x: NONEFLOW_MARKER in (x.body if x.body else ""), comments),
-            None,
-        )
-
-        # comment = await render_comment(result, bool(reusable_comment))
-        if reusable_comment:
-            logger.info(f"发现已有评论 {reusable_comment.id}，正在修改")
-            if reusable_comment.body != comment:
-                await self.bot.rest.issues.async_update_comment(
-                    **self.repo_info.model_dump(),
-                    comment_id=reusable_comment.id,
-                    body=comment,
-                )
-                logger.info("评论修改完成")
-            else:
-                logger.info("评论内容无变化，跳过修改")
-        else:
-            await self.bot.rest.issues.async_create_comment(
-                **self.repo_info.model_dump(),
-                issue_number=self.issue_number,
-                body=comment,
-            )
-            logger.info("评论创建完成")
-
 
 class IssueHandler(GithubHandler):
     """Issue 的相关 Github/Git 操作"""
@@ -207,7 +213,9 @@ class IssueHandler(GithubHandler):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     issue: Issue
+    issue_number: int
     author_id: int = 0
+    author: str = ""
 
     @model_validator(mode="before")
     @classmethod
@@ -251,3 +259,23 @@ class IssueHandler(GithubHandler):
                 state="closed",
                 state_reason=reason,
             )
+
+    async def comment_issue(self, comment: str):
+        return await super().comment_issue(comment, self.issue_number)
+
+    async def create_pull_request(
+        self,
+        base_branch: str,
+        title: str,
+        branch_name: str,
+        label: str | list[str],
+    ):
+        return await super().create_pull_request(
+            base_branch, title, branch_name, label, self.issue_number
+        )
+
+    async def list_comments(self):
+        return await super().list_comments(self.issue_number)
+
+    def commit_and_push(self, message: str, branch_name: str):
+        return super().commit_and_push(message, branch_name, self.author)
