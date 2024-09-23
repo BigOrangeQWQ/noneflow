@@ -8,7 +8,7 @@ from pydantic_core import to_jsonable_python
 from src.plugins.github.depends.utils import extract_issue_number_from_ref
 from src.plugins.github.utils import run_shell_command
 from src.plugins.github import plugin_config
-from src.plugins.github.models import IssueHandler, GitHandler
+from src.plugins.github.models import IssueHandler
 from src.providers.validation.models import ValidationDict
 
 
@@ -83,23 +83,9 @@ async def process_pr_and_issue_title(
         [REMOVE_LABEL],
     )
 
-async def extract_issue_homepage(issue_number: int) -> tuple[str, str]:
-    issue = (
-            await bot.rest.issues.async_get(
-                **repo_info.model_dump(), issue_number=issue_number
-            )
-        ).parsed_data
-    homepage = extract_publish_info_from_issue(
-        {
-            "homepage": REMOVE_HOMEPAGE_PATTERN,
-        },
-        issue.body or "",
-    ).get("homepage")
-    author = issue.user.login if issue.user else ""
-    return homepage, author
-
 
 async def resolve_conflict_pull_requests(
+    handler: IssueHandler,
     pulls: list["PullRequestSimple"] | list["PullRequest"],
 ):
     """根据关联的议题提交来解决冲突
@@ -109,6 +95,13 @@ async def resolve_conflict_pull_requests(
     logger.info("开始解决冲突")
     # 获取远程分支
     run_shell_command(["git", "fetch", "origin"])
+
+    # 读取主分支的数据
+    main_data = {}
+    for type, path in PUBLISH_PATH.items():
+        main_data[type] = load_json(path)
+
+    run_shell_command(["git", "checkout", pull.head.ref])
 
     for pull in pulls:
         issue_number = extract_issue_number_from_ref(pull.head.ref)
@@ -120,31 +113,34 @@ async def resolve_conflict_pull_requests(
         if pull.draft:
             logger.info("拉取请求为草稿，跳过处理")
             continue
-
+        
         # 切换到主分支
         run_shell_command(["git", "checkout", plugin_config.input_config.base])
-        # 切换到拉取请求对应的
+        # 删除拉取的远程分支
+        run_shell_command(["git", "branch", "-D", pull.head.ref])
+        # 同步 main 分支到新的分支上
         run_shell_command(["git", "switch", "-C", pull.head.ref])
-
-        # 读取主分支的数据
+        # 读取拉取请求分支的数据
         pull_data = {}
         for type, path in PUBLISH_PATH.items():
             pull_data[type] = load_json(path)
-        
-        homepage, author = await extract_issue_homepage(issue_number)
-        for data in pull_data.values():
-            for item in data:
-                if item.get("homepage") == homepage:
-                    logger.info(f"找到匹配的 {type} 数据 {item}")
+
+        for type, data in pull_data.items():
+            if data != main_data[type]:
+                logger.info(f"{type} 数据发生变化，开始解决冲突")
+
+                # 该分支存在的数据，但主分支已经删除的元素
+                remove_items = [item for item in data if item not in main_data[type]]
+
+                logger.info(f"找到冲突的 {type} 数据 {remove_items}")
+
+
+                for item in remove_items:
                     update_file(item)
-                    break
-                
+                handler.commit_and_push(
+                    f"{COMMIT_MESSAGE_PREFIX} {pull.title} (#{issue_number})",
+                    pull.head.ref,
+                )
+                logger.info(f"已解决 {type} 数据冲突")
 
-
-        GitHandler().commit_and_push(
-            f"{COMMIT_MESSAGE_PREFIX} {pull.title} (#{issue_number})",
-            pull.head.ref,
-            author
-        )
-
-        logger.info(f"{pull.title} 冲突处理完毕")
+        logger.info(f"{pull.title} 处理完毕")
