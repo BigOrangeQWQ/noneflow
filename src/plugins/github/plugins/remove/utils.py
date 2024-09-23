@@ -101,9 +101,9 @@ async def resolve_conflict_pull_requests(
     for type, path in PUBLISH_PATH.items():
         main_data[type] = load_json(path)
 
-    run_shell_command(["git", "checkout", pull.head.ref])
 
     for pull in pulls:
+    
         issue_number = extract_issue_number_from_ref(pull.head.ref)
         if not issue_number:
             logger.error(f"无法获取 {pull.title} 对应的议题编号")
@@ -114,12 +114,7 @@ async def resolve_conflict_pull_requests(
             logger.info("拉取请求为草稿，跳过处理")
             continue
         
-        # 切换到主分支
-        run_shell_command(["git", "checkout", plugin_config.input_config.base])
-        # 删除拉取的远程分支
-        run_shell_command(["git", "branch", "-D", pull.head.ref])
-        # 同步 main 分支到新的分支上
-        run_shell_command(["git", "switch", "-C", pull.head.ref])
+        run_shell_command(["git", "checkout", pull.head.ref])
         # 读取拉取请求分支的数据
         pull_data = {}
         for type, path in PUBLISH_PATH.items():
@@ -134,7 +129,13 @@ async def resolve_conflict_pull_requests(
 
                 logger.info(f"找到冲突的 {type} 数据 {remove_items}")
 
-
+                # 切换到主分支
+                run_shell_command(["git", "checkout", plugin_config.input_config.base])
+                # 删除拉取的远程分支
+                run_shell_command(["git", "branch", "-D", pull.head.ref])
+                # 同步 main 分支到新的分支上
+                run_shell_command(["git", "switch", "-C", pull.head.ref])
+                # 更新文件并提交更改
                 for item in remove_items:
                     update_file(item)
                 handler.commit_and_push(
@@ -142,5 +143,6 @@ async def resolve_conflict_pull_requests(
                     pull.head.ref,
                 )
                 logger.info(f"已解决 {type} 数据冲突")
+                
 
         logger.info(f"{pull.title} 处理完毕")
