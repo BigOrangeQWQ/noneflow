@@ -3,7 +3,7 @@ name: Plugin Test Container Builder
 on: 
   push:
     paths:
-      - '/docker/**'
+      - 'docker/**'
   workflow_dispatch:
     
 jobs:
@@ -14,8 +14,6 @@ jobs:
       matrix:
         python-version: ['3.9', '3.10', '3.11', '3.12']
 
-    # needs: test
-    if: ${{ github.event_name != 'pull_request' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
