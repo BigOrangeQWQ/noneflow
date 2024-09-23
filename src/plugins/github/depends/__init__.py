@@ -3,15 +3,14 @@ from nonebot.adapters.github import (
     GitHubBot,
     IssueCommentCreated,
     IssuesEdited,
-    IssuesOpened,
-    IssuesReopened,
     PullRequestClosed,
     PullRequestReviewSubmitted,
 )
 from nonebot.params import Depends
 
+from plugins.github.typing import IssuesEvent, PullRequestEvent
 from src.plugins.github.constants import BOT_MARKER
-from src.plugins.github.models import RepoInfo
+from src.plugins.github.models import GithubHandler, RepoInfo
 from src.plugins.github.utils import run_shell_command
 
 from .utils import extract_issue_number_from_ref
@@ -29,12 +28,7 @@ def install_pre_commit_hooks():
 
 
 def get_labels(
-    event: PullRequestClosed
-    | PullRequestReviewSubmitted
-    | IssuesOpened
-    | IssuesReopened
-    | IssuesEdited
-    | IssueCommentCreated,
+    event: PullRequestEvent | IssuesEvent,
 ):
     """获取议题或拉取请求的标签"""
     if isinstance(event, PullRequestClosed | PullRequestReviewSubmitted):
@@ -45,19 +39,14 @@ def get_labels(
 
 
 def get_issue_title(
-    event: IssuesOpened | IssuesReopened | IssuesEdited | IssueCommentCreated,
+    event: IssuesEvent,
 ):
     """获取议题标题"""
     return event.payload.issue.title
 
 
 def get_repo_info(
-    event: PullRequestClosed
-    | PullRequestReviewSubmitted
-    | IssuesOpened
-    | IssuesReopened
-    | IssuesEdited
-    | IssueCommentCreated,
+    event: PullRequestEvent | IssuesEvent,
 ) -> RepoInfo:
     """获取仓库信息"""
     repo = event.payload.repository
@@ -75,9 +64,8 @@ async def get_installation_id(
     return installation.id
 
 
-
 def get_issue_number(
-    event: IssuesOpened | IssuesReopened | IssuesEdited | IssueCommentCreated,
+    event: IssuesEvent,
 ) -> int:
     """获取议题编号"""
     return event.payload.issue.number
@@ -91,7 +79,7 @@ def get_related_issue_number(event: PullRequestClosed) -> int | None:
 
 
 def is_bot_triggered_workflow(
-    event: IssuesOpened | IssuesReopened | IssuesEdited | IssueCommentCreated,
+    event: IssuesEvent,
 ):
     """触发议题相关的工作流"""
     if (
@@ -109,3 +97,11 @@ def is_bot_triggered_workflow(
         logger.info("议题修改来自机器人，已跳过")
         return True
     return False
+
+
+def get_github_handler(
+    bot: GitHubBot,
+    repo_info: RepoInfo = Depends(get_repo_info),
+):
+    """获取 GitHub 处理器"""
+    return GithubHandler(bot=bot, repo_info=repo_info)

@@ -5,11 +5,9 @@
 **{{ "✅ 所有检查通过，一切准备就绪！" if valid else "⚠️ 在下架检查过程中，我们发现以下问题："}}**
 
 {% if not valid %}
-<pre><code>
-<li>⚠️ {{ error.type }}: {{ error.message_template }}</li>
-</code></pre>
+> ⚠️ {{ error.type }}: {{ error.message_template }}
 {% else %}
-<summary>发起插件下架流程！</summary>
+> 发起插件下架流程！
 {% endif %}
 
 ---

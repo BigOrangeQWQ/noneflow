@@ -1,6 +1,6 @@
 import re
 
-NONEFLOW_MARKER = "<!-- NONEFLOW -->"
+from src.plugins.github.constants import ISSUE_PATTERN
 
 BOT_MARKER = "[bot]"
 """机器人的名字结尾都会带有这个"""
@@ -11,14 +11,9 @@ COMMIT_MESSAGE_PREFIX = ":beers: publish"
 
 BRANCH_NAME_PREFIX = "publish/issue"
 
-TITLE_MAX_LENGTH = 50
-"""标题最大长度"""
 
 # 匹配信息的正则表达式
 # 格式：### {标题}\n\n{内容}
-ISSUE_PATTERN = r"### {}\s+([^\s#].*?)(?=(?:\s+###|$))"
-ISSUE_FIELD_TEMPLATE = "### {}"
-ISSUE_FIELD_PATTERN = r"### {}\s+"
 
 # 基本信息
 PROJECT_LINK_PATTERN = re.compile(ISSUE_PATTERN.format("PyPI 项目名"))
@@ -59,25 +54,6 @@ ADAPTER_NAME_PATTERN = re.compile(ISSUE_PATTERN.format("适配器名称"))
 ADAPTER_DESC_PATTERN = re.compile(ISSUE_PATTERN.format("适配器描述"))
 ADAPTER_MODULE_NAME_PATTERN = re.compile(ISSUE_PATTERN.format("适配器 import 包名"))
 ADAPTER_HOMEPAGE_PATTERN = re.compile(ISSUE_PATTERN.format("适配器项目仓库/主页链接"))
-
-# 正则表达式对应的信息项名
-PATTERN_NAME_MAP = {
-    PROJECT_LINK_PATTERN: "project_link",
-    TAGS_PATTERN: "tags",
-    PLUGIN_MODULE_NAME_PATTERN: "module_name",
-    PLUGIN_NAME_PATTERN: "name",
-    PLUGIN_DESC_PATTERN: "desc",
-    PLUGIN_HOMEPAGE_PATTERN: "homepage",
-    PLUGIN_TYPE_PATTERN: "type",
-    PLUGIN_SUPPORTED_ADAPTERS_PATTERN: "supported_adapters",
-    ADAPTER_NAME_PATTERN: "name",
-    ADAPTER_DESC_PATTERN: "desc",
-    ADAPTER_MODULE_NAME_PATTERN: "module_name",
-    ADAPTER_HOMEPAGE_PATTERN: "homepage",
-    BOT_NAME_PATTERN: "name",
-    BOT_DESC_PATTERN: "desc",
-    BOT_HOMEPAGE_PATTERN: "homepage",
-}
 
 # 发布信息项对应的中文名
 LOC_NAME_MAP = {

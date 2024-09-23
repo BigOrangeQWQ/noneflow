@@ -11,7 +11,7 @@ from .utils import load_json
 
 async def validate_author_info(issue: Issue) -> ValidationDict:
     """
-    根据主页链接与作者信息删除对应的包储存在商店里的数据
+    根据主页链接与作者信息找到对应的包的信息
     """
 
     homepage = extract_publish_info_from_issue(

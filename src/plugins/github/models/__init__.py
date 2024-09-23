@@ -26,8 +26,6 @@ class RepoInfo(BaseModel):
 class GitHandler(BaseModel):
     """Git 操作"""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     def commit_and_push(self, message: str, branch_name: str, author: str):
         run_shell_command(["git", "config", "--global", "user.name", author])
         user_email = f"{author}@users.noreply.github.com"
@@ -51,6 +49,10 @@ class GitHandler(BaseModel):
             logger.info("检测到本地分支与远程分支不一致，尝试强制推送")
             run_shell_command(["git", "push", "origin", branch_name, "-f"])
 
+    def delete_origin_branch(self, branch_name: str):
+        """删除远程分支"""
+        run_shell_command(["git", "push", "origin", "--delete", branch_name])
+
 
 class GithubHandler(GitHandler):
     """Bot 相关的 Github 操作"""
@@ -59,6 +61,18 @@ class GithubHandler(GitHandler):
 
     bot: Bot
     repo_info: RepoInfo
+
+    async def create_dispatch_event(
+        self, repo: RepoInfo | None, event_type: str, client_payload: dict
+    ):
+        if repo is None:
+            repo = self.repo_info
+        await self.bot.rest.repos.async_create_dispatch_event(
+            repo=repo.repo,
+            owner=repo.owner,
+            event_type=event_type,
+            client_payload=client_payload,  # type: ignore
+        )
 
     async def list_comments(self, issue_number: int):
         return (

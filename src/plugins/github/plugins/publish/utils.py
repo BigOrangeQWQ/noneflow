@@ -7,23 +7,22 @@ from githubkit.typing import Missing
 from nonebot import logger
 from nonebot.adapters.github import Bot, GitHubBot
 
-from src.plugins.github.models import GitHandler, IssueHandler
+from src.plugins.github.models import GithubHandler, IssueHandler
 from src.providers.validation import (
     PublishType,
     ValidationDict,
 )
 from src.plugins.github.depends import RepoInfo
-from src.plugins.github.utils import run_shell_command
+from src.plugins.github.utils import dump_json, load_json, run_shell_command
+from src.plugins.github.utils import commit_message as _commit_message
 from src.plugins.github import plugin_config
-
+from src.plugins.github.constants import ISSUE_FIELD_PATTERN, ISSUE_FIELD_TEMPLATE
 
 from .validation import validate_plugin_info_from_issue
 
 from .constants import (
     BRANCH_NAME_PREFIX,
     COMMIT_MESSAGE_PREFIX,
-    ISSUE_FIELD_PATTERN,
-    ISSUE_FIELD_TEMPLATE,
     PLUGIN_CONFIG_PATTERN,
     PLUGIN_MODULE_NAME_PATTERN,
     PLUGIN_STRING_LIST,
@@ -99,7 +98,9 @@ def get_type_by_commit_message(message: str) -> PublishType | None:
 
 def commit_message(type: PublishType, name: str, issue_number: int) -> str:
     """构造提交信息"""
-    return f"{COMMIT_MESSAGE_PREFIX} {type.value.lower()} {name} (#{issue_number})"
+    return _commit_message(
+        COMMIT_MESSAGE_PREFIX, f"{type.value.lower()} {name}", issue_number
+    )
 
 
 def extract_issue_number_from_ref(ref: str) -> int | None:
@@ -116,34 +117,8 @@ def extract_name_from_title(title: str, publish_type: PublishType) -> str | None
         return match.group(1)
 
 
-def commit_and_push(result: ValidationDict, branch_name: str, issue_number: int):
-    """提交并推送"""
-    commit_message = f"{COMMIT_MESSAGE_PREFIX} {result.type.value.lower()} {result.name} (#{issue_number})"
-
-    run_shell_command(["git", "config", "--global", "user.name", result.author])
-    user_email = f"{result.author}@users.noreply.github.com"
-    run_shell_command(["git", "config", "--global", "user.email", user_email])
-    run_shell_command(["git", "add", "-A"])
-    try:
-        run_shell_command(["git", "commit", "-m", commit_message])
-    except Exception:
-        # 如果提交失败，因为是 pre-commit hooks 格式化代码导致的，所以需要再次提交
-        run_shell_command(["git", "add", "-A"])
-        run_shell_command(["git", "commit", "-m", commit_message])
-
-    try:
-        run_shell_command(["git", "fetch", "origin"])
-        r = run_shell_command(["git", "diff", f"origin/{branch_name}", branch_name])
-        if r.stdout:
-            raise Exception
-        else:
-            logger.info("检测到本地分支与远程分支一致，跳过推送")
-    except Exception:
-        logger.info("检测到本地分支与远程分支不一致，尝试强制推送")
-        run_shell_command(["git", "push", "origin", branch_name, "-f"])
-
-
 async def resolve_conflict_pull_requests(
+    handler: GithubHandler,
     pulls: list["PullRequestSimple"] | list["PullRequest"],
 ):
     """根据关联的议题提交来解决冲突
@@ -162,11 +137,13 @@ async def resolve_conflict_pull_requests(
             continue
 
         publish_type = get_type_by_labels(pull.labels)
+
         if publish_type:
             # 需要先获取远程分支，否则无法切换到对应分支
             run_shell_command(["git", "fetch", "origin"])
             # 因为当前分支为触发处理冲突的分支，所以需要切换到每个拉取请求对应的分支
             run_shell_command(["git", "checkout", pull.head.ref])
+
             # 获取数据
             result = generate_validation_dict_from_file(
                 publish_type,
@@ -181,8 +158,9 @@ async def resolve_conflict_pull_requests(
             run_shell_command(["git", "checkout", plugin_config.input_config.base])
             # 切换到对应分支
             run_shell_command(["git", "switch", "-C", pull.head.ref])
+            # 更新文件
             update_file(result)
-            GitHandler().commit_and_push(
+            handler.commit_and_push(
                 commit_message(result.type, result.name, issue_number),
                 pull.head.ref,
                 result.author,
@@ -245,13 +223,11 @@ def update_file(result: ValidationDict) -> None:
             }
 
     logger.info(f"正在更新文件: {path}")
-    with path.open("r", encoding="utf-8") as f:
-        data: list[dict[str, str]] = json.load(f)
-    with path.open("w", encoding="utf-8") as f:
-        data.append(new_data)
-        json.dump(data, f, ensure_ascii=False, indent=2)
-        # 结尾加上换行符，不然会被 pre-commit fix
-        f.write("\n")
+
+    data = load_json(path)
+    data.append(new_data)
+    dump_json(path, data, 2)
+
     logger.info("文件更新完成")
 
 
@@ -260,7 +236,7 @@ async def should_skip_plugin_test(
     repo_info: RepoInfo,
     issue_number: int,
 ) -> bool:
-    """判断是否跳过插件测试"""
+    """判断评论是否包含跳过的标记"""
     comments = (
         await bot.rest.issues.async_list_comments(
             **repo_info.model_dump(), issue_number=issue_number
@@ -323,14 +299,14 @@ async def should_skip_plugin_publish(
     return False
 
 
-async def process_pr_and_issue_title(
+async def process_pull_request(
     handler: IssueHandler,
     result: ValidationDict,
     branch_name: str,
     title: str,
 ):
     """
-    根据发布信息合法性创建拉取请求或将请求改为草稿，并修改议题标题
+    根据发布信息合法性创建拉取请求或将请求改为草稿
     """
     if result.valid:
         commit_message = f"{COMMIT_MESSAGE_PREFIX} {result.type.value.lower()} {result.name} (#{handler.issue_number})"
@@ -347,11 +323,6 @@ async def process_pr_and_issue_title(
     else:
         # 如果之前已经创建了拉取请求，则将其转换为草稿
         await handler.pull_request_to_draft(branch_name)
-
-    # 修改议题标题
-    # 需要等创建完拉取请求并打上标签后执行
-    # 不然会因为修改议题触发 Actions 导致标签没有正常打上
-    await handler.update_issue_title(title)
 
 
 async def trigger_registry_update(

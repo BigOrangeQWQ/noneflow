@@ -30,16 +30,16 @@ from .constants import BRANCH_NAME_PREFIX, REMOVE_LABEL
 from .depends import check_labels, get_name_by_labels
 from .utils import (
     resolve_conflict_pull_requests,
-    process_pr_and_issue_title,
+    process_pull_reqeusts,
 )
 from .validation import validate_author_info
 
 
 async def pr_close_rule(
-    is_remove_pr: bool = check_labels("remove"),
+    is_remove: bool = check_labels("remove"),
     related_issue_number: int | None = Depends(get_related_issue_number),
 ) -> bool:
-    if not is_remove_pr:
+    if not is_remove:
         logger.info("拉取请求与发布无关，已跳过")
         return False
 
@@ -73,22 +73,14 @@ async def handle_pr_close(
         handler = IssueHandler(
             bot=bot, repo_info=repo_info, issue_number=related_issue_number, issue=issue
         )
-        reason = "completed" if event.payload.pull_request.merged else "not_planned"
 
         if issue.state == "open":
+            reason = "completed" if event.payload.pull_request.merged else "not_planned"
             await handler.close_issue(reason)
         logger.info(f"议题 #{related_issue_number} 已关闭")
 
         try:
-            run_shell_command(
-                [
-                    "git",
-                    "push",
-                    "origin",
-                    "--delete",
-                    event.payload.pull_request.head.ref,
-                ]
-            )
+            handler.delete_origin_branch(event.payload.pull_request.head.ref)
             logger.info("已删除对应分支")
         except Exception:
             logger.info("对应分支不存在或已删除")
@@ -156,11 +148,11 @@ async def handle_remove_check(
             await handler.comment_issue(await render_error(err))
             await remove_check_matcher.finish()
 
-        title = f"{result.type}: Remove {result.name}"
+        title = f"{result.type}: Remove {result.name or 'Unknown'}"
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
 
         # 处理拉取请求和议题标题
-        await process_pr_and_issue_title(handler, result, branch_name, title)
+        await process_pull_reqeusts(handler, result, branch_name, title)
         # 更新议题标题
         await handler.update_issue_title(title)
 

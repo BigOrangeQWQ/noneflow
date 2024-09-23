@@ -16,6 +16,7 @@ from src.providers.validation.models import PublishType
 from src.plugins.github.plugins.publish.render import render_comment
 from src.plugins.github.depends import (
     bypass_git,
+    get_github_handler,
     get_installation_id,
     get_issue_number,
     get_repo_info,
@@ -23,21 +24,20 @@ from src.plugins.github.depends import (
     install_pre_commit_hooks,
     is_bot_triggered_workflow,
 )
-from src.plugins.github.models import IssueHandler, RepoInfo
+from src.plugins.github.models import GithubHandler, IssueHandler, RepoInfo
 from src.plugins.github import plugin_config
 
-from .constants import BRANCH_NAME_PREFIX, TITLE_MAX_LENGTH
+from src.plugins.github.constants import TITLE_MAX_LENGTH
+from .constants import BRANCH_NAME_PREFIX
 from .depends import (
-    get_pull_requests_by_label,
     get_type_by_labels,
 )
 
 from .utils import (
-    process_pr_and_issue_title,
+    process_pull_request,
     ensure_issue_content,
     ensure_issue_test_button,
     resolve_conflict_pull_requests,
-    run_shell_command,
     should_skip_plugin_publish,
     should_skip_plugin_test,
     trigger_registry_update,
@@ -84,35 +84,26 @@ async def handle_pr_close(
                 **repo_info.model_dump(), issue_number=related_issue_number
             )
         ).parsed_data
+
         handler = IssueHandler(
             bot=bot, repo_info=repo_info, issue_number=related_issue_number, issue=issue
         )
-        reason = "completed" if event.payload.pull_request.merged else "not_planned"
 
         if issue.state == "open":
+            reason = "completed" if event.payload.pull_request.merged else "not_planned"
             await handler.close_issue(reason)
         logger.info(f"议题 #{related_issue_number} 已关闭")
 
         try:
-            run_shell_command(
-                [
-                    "git",
-                    "push",
-                    "origin",
-                    "--delete",
-                    event.payload.pull_request.head.ref,
-                ]
-            )
+            handler.delete_origin_branch(event.payload.pull_request.head.ref)
             logger.info("已删除对应分支")
         except Exception:
             logger.info("对应分支不存在或已删除")
 
         if event.payload.pull_request.merged:
             logger.info("发布的拉取请求已合并，准备更新拉取请求的提交")
-            pull_requests = await get_pull_requests_by_label(
-                bot, repo_info, publish_type
-            )
-            await resolve_conflict_pull_requests(pull_requests)
+            pull_requests = await handler.get_pull_requests_by_label(publish_type.value)
+            await resolve_conflict_pull_requests(handler, pull_requests)
         else:
             logger.info("发布的拉取请求未合并，已跳过")
 
@@ -197,11 +188,14 @@ async def handle_publish_plugin_check(
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
 
         # 验证之后创建拉取请求和修改议题的标题
-        await process_pr_and_issue_title(handler, result, branch_name, title)
+        await process_pull_request(handler, result, branch_name, title)
 
         await ensure_issue_test_button(handler)
 
         comment = await render_comment(result, True)
+
+        # 修改议题标题
+        await handler.update_issue_title(title)
         await handler.comment_issue(comment)
 
 
@@ -244,9 +238,12 @@ async def handle_adapter_publish_check(
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
 
         # 验证之后创建拉取请求和修改议题的标题
-        await process_pr_and_issue_title(handler, result, branch_name, title)
+        await process_pull_request(handler, result, branch_name, title)
 
         comment = await render_comment(result, True)
+
+        # 修改议题标题
+        await handler.update_issue_title(title)
         await handler.comment_issue(comment)
 
 
@@ -290,9 +287,12 @@ async def handle_bot_publish_check(
         branch_name = f"{BRANCH_NAME_PREFIX}{issue_number}"
 
         # 验证之后创建拉取请求和修改议题的标题
-        await process_pr_and_issue_title(handler, result, branch_name, title)
+        await process_pull_request(handler, result, branch_name, title)
 
         comment = await render_comment(result, True)
+
+        # 修改议题标题
+        await handler.update_issue_title(title)
         await handler.comment_issue(comment)
 
 
@@ -324,6 +324,7 @@ async def handle_auto_merge(
     event: PullRequestReviewSubmitted,
     installation_id: int = Depends(get_installation_id),
     repo_info: RepoInfo = Depends(get_repo_info),
+    handler: GithubHandler = Depends(get_github_handler),
 ) -> None:
     async with bot.as_installation(installation_id):
         pull_request = (
@@ -334,7 +335,7 @@ async def handle_auto_merge(
 
         if not pull_request.mergeable:
             # 尝试处理冲突
-            await resolve_conflict_pull_requests([pull_request])
+            await resolve_conflict_pull_requests(handler, [pull_request])
 
         await bot.rest.pulls.async_merge(
             **repo_info.model_dump(),

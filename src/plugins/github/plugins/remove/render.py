@@ -29,6 +29,7 @@ async def render_comment(result: ValidationDict) -> str:
 
 
 async def render_error(exception: PydanticCustomError):
+    """将错误转换成评论内容"""
     title = "Error"
     template = env.get_template("comment.md.jinja")
     return await template.render_async(

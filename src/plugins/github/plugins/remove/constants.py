@@ -11,7 +11,7 @@ BRANCH_NAME_PREFIX = "remove/issue"
 
 COMMIT_MESSAGE_PREFIX = ":hammer: remove"
 
-REMOVE_LABEL = "remove"
+REMOVE_LABEL = "Remove"
 
 PUBLISH_PATH = {
     PublishType.PLUGIN: plugin_config.input_config.plugin_path,
