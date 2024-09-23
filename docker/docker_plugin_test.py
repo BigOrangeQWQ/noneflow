@@ -24,10 +24,6 @@ STORE_PLUGINS_URL = (
 )
 # 匹配信息的正则表达式
 ISSUE_PATTERN = r"### {}\s+([^\s#].*?)(?=(?:\s+###|$))"
-# 插件信息
-# PROJECT_LINK_PATTERN = re.compile(ISSUE_PATTERN.format("PyPI 项目名"))
-# MODULE_NAME_PATTERN = re.compile(ISSUE_PATTERN.format("插件 import 包名"))
-# CONFIG_PATTERN = re.compile(r"### 插件配置项\s+```(?:\w+)?\s?([\s\S]*?)```")
 
 FAKE_SCRIPT = """from typing import Optional, Union
 
