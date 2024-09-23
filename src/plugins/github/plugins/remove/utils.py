@@ -125,7 +125,7 @@ async def resolve_conflict_pull_requests(
                 logger.info(f"{type} 数据发生变化，开始解决冲突")
 
                 # 该分支存在的数据，但主分支已经删除的元素
-                remove_items = [item for item in data if item not in main_data[type]]
+                remove_items = [item for item in main_data[type] if item not in data]
 
                 logger.info(f"找到冲突的 {type} 数据 {remove_items}")
 
