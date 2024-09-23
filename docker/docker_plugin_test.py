@@ -25,6 +25,7 @@ STORE_PLUGINS_URL = (
 # 匹配信息的正则表达式
 ISSUE_PATTERN = r"### {}\s+([^\s#].*?)(?=(?:\s+###|$))"
 
+# 伪造的驱动
 FAKE_SCRIPT = """from typing import Optional, Union
 
 from nonebot import logger
@@ -425,7 +426,7 @@ def main():
     """
     根据传入的环境变量 PLUGIN_INFO 和 PLUGIN_CONFIG 进行测试
 
-    PLUGIN_INFO 即为该插件的键
+    PLUGIN_INFO 即为该插件的 KEY
     """
 
     plugin_info = os.environ.get("PLUGIN_INFO", "")
