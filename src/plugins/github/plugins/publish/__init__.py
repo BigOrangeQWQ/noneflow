@@ -10,6 +10,7 @@ from nonebot.adapters.github import (
     PullRequestReviewSubmitted,
 )
 from nonebot.params import Depends
+from pydantic import ValidationError
 
 from src.providers.validation.models import PublishType
 
@@ -27,7 +28,7 @@ from src.plugins.github.depends import (
 from src.plugins.github.models import GithubHandler, IssueHandler, RepoInfo
 from src.plugins.github import plugin_config
 
-from src.plugins.github.constants import TITLE_MAX_LENGTH
+from plugins.github.constants import TITLE_MAX_LENGTH
 from .constants import BRANCH_NAME_PREFIX
 from .depends import (
     get_type_by_labels,
@@ -178,6 +179,7 @@ async def handle_publish_plugin_check(
 
         # 检查是否满足发布要求
         # 仅在通过检查的情况下创建拉取请求
+
         result = await validate_plugin_info_from_issue(issue)
 
         # 设置拉取请求与议题的标题
