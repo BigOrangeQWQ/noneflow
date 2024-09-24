@@ -10,7 +10,6 @@ from nonebot.adapters.github import (
     PullRequestReviewSubmitted,
 )
 from nonebot.params import Depends
-from pydantic import ValidationError
 
 from src.providers.validation.models import PublishType
 
@@ -28,7 +27,7 @@ from src.plugins.github.depends import (
 from src.plugins.github.models import GithubHandler, IssueHandler, RepoInfo
 from src.plugins.github import plugin_config
 
-from plugins.github.constants import TITLE_MAX_LENGTH
+from src.plugins.github.constants import TITLE_MAX_LENGTH
 from .constants import BRANCH_NAME_PREFIX
 from .depends import (
     get_type_by_labels,

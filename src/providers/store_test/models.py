@@ -58,7 +58,7 @@ class Metadata(BaseModel):
     """插件元数据"""
 
     name: str
-    description: str = Field(serialization_alias="desc")
+    desc: str
     homepage: str
     type: str | None = None
     supported_adapters: list[str] | None = None
