@@ -31,7 +31,7 @@ dev-dependencies = [
   "bump-my-version>=0.28.1",
   "inline-snapshot>=0.14.0",
   "nonebug>=0.4.2",
-  "poethepoet>=0.30.0",
+  "poethepoet>=0.31.0",
   "pytest-asyncio>=0.24.0",
   "pytest-cov>=6.0.0",
   "pytest-mock>=3.14.0",
@@ -84,6 +84,9 @@ ignore = [
   "RUF003",   # ambiguous-unicode-character-comment
   "ASYNC230", # blocking-open-call-in-async-function
 ]
+
+[tool.ruff.lint.isort]
+known-third-party = ["docker"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
